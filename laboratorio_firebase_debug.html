@@ -1,0 +1,124 @@
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Estado del Laboratorio</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f4f4f4;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      margin: 0;
+    }
+
+    h1 {
+      margin-bottom: 20px;
+    }
+
+    #estado {
+      font-size: 2rem;
+      font-weight: bold;
+      padding: 10px 20px;
+      border-radius: 10px;
+      color: white;
+      margin-bottom: 20px;
+    }
+
+    .activo {
+      background-color: #e74c3c;
+    }
+
+    .inactivo {
+      background-color: #2ecc71;
+    }
+
+    button {
+      padding: 15px 30px;
+      font-size: 1rem;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+      background-color: #3498db;
+      color: white;
+      transition: background-color 0.3s ease;
+    }
+
+    button:hover {
+      background-color: #2980b9;
+    }
+
+    #error {
+      margin-top: 15px;
+      color: red;
+      font-size: 0.9rem;
+    }
+  </style>
+</head>
+<body>
+
+<h1>Laboratorio de Electrónica</h1>
+<div id="estado" class="inactivo">Cargando...</div>
+<button onclick="cambiarEstado()">Cambiar Estado</button>
+<div id="error"></div>
+
+<!-- Firebase SDKs -->
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-app.js";
+  import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-database.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyApRN9cnGIPsW_kNHtSfPpXWD4_TwrrBPk",
+    authDomain: "estado-laboratorio.firebaseapp.com",
+    projectId: "estado-laboratorio",
+    storageBucket: "estado-laboratorio.firebasestorage.app",
+    messagingSenderId: "449135433069",
+    appId: "1:449135433069:web:acf49b3ef481ee9799f664",
+    measurementId: "G-HL7R07P79H",
+    databaseURL: "https://estado-laboratorio-default-rtdb.firebaseio.com/"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getDatabase(app);
+  const estadoRef = ref(db, 'laboratorio/estado');
+
+  const estadoDiv = document.getElementById("estado");
+  const errorDiv = document.getElementById("error");
+
+  try {
+    onValue(estadoRef, (snapshot) => {
+      const valor = snapshot.val();
+      if (valor === "EN USO") {
+        estadoDiv.textContent = "EN USO";
+        estadoDiv.className = "activo";
+      } else if (valor === "DISPONIBLE") {
+        estadoDiv.textContent = "DISPONIBLE";
+        estadoDiv.className = "inactivo";
+      } else {
+        estadoDiv.textContent = "Valor desconocido";
+        estadoDiv.className = "inactivo";
+      }
+    }, (error) => {
+      errorDiv.textContent = "Error al leer la base de datos: " + error.message;
+      console.error("Lectura fallida:", error);
+    });
+  } catch (e) {
+    errorDiv.textContent = "Error general: " + e.message;
+    console.error("Error en script:", e);
+  }
+
+  window.cambiarEstado = function () {
+    const nuevoEstado = (estadoDiv.textContent === "EN USO") ? "DISPONIBLE" : "EN USO";
+    set(estadoRef, nuevoEstado).catch((error) => {
+      errorDiv.textContent = "Error al guardar: " + error.message;
+      console.error("Guardado fallido:", error);
+    });
+  };
+</script>
+
+</body>
+</html>
