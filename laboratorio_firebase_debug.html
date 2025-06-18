@@ -1,19 +1,34 @@
-<!DOCTYPE html>
-<html lang="es">
+<!DOCTYPE html><html lang="es">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Estado Laboratorio</title>
-  <script type="module">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Estado del Laboratorio</title>
+  <style>
+    body { font-family: Arial, sans-serif; text-align: center; padding: 30px; }
+    button { font-size: 1.2em; padding: 10px 20px; margin-top: 10px; }
+    #estadoTexto { font-size: 1.5em; margin-top: 20px; }
+    #historial { margin-top: 20px; }
+  </style>
+</head>
+<body>
+  <h1>Estado del Laboratorio de Electrónica</h1>
+  <input id="nombreUsuario" type="text" placeholder="Escribe tu nombre" />
+  <br><br>
+  <button id="botonEstado">Cargando...</button>
+  <p id="estadoTexto">Cargando estado...</p>
+  <p id="ultimoUsuario">Cargando usuario...</p>
+  <div id="historial">
+    <h3>Últimos cambios</h3>
+    <ul id="listaHistorial"></ul>
+  </div>  <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-app.js";
     import { getDatabase, ref, onValue, set } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-database.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyApRN9cnGIPsW_kNHtSfPpXWD4_TwrrBPk",
       authDomain: "estado-laboratorio.firebaseapp.com",
-      databaseURL: "https://estado-laboratorio-default-rtdb.firebaseio.com",
       projectId: "estado-laboratorio",
-      storageBucket: "estado-laboratorio.appspot.com",
+      storageBucket: "estado-laboratorio.firebasestorage.app",
       messagingSenderId: "449135433069",
       appId: "1:449135433069:web:acf49b3ef481ee9799f664",
       measurementId: "G-HL7R07P79H"
@@ -21,94 +36,73 @@
 
     const app = initializeApp(firebaseConfig);
     const db = getDatabase(app);
+    const estadoRef = ref(db, 'laboratorio');
 
-    const estadoRef = ref(db, 'laboratorio/estado');
-    const usuarioRef = ref(db, 'laboratorio/usuario');
+    const btn = document.getElementById("botonEstado");
+    const nombreInput = document.getElementById("nombreUsuario");
+    const estadoTexto = document.getElementById("estadoTexto");
+    const usuarioTexto = document.getElementById("ultimoUsuario");
+    const listaHistorial = document.getElementById("listaHistorial");
 
-    const btn = document.getElementById('botonEstado');
-    const estadoTexto = document.getElementById('estadoTexto');
-    const usuarioInput = document.getElementById('nombreUsuario');
-    const ultimoUsuario = document.getElementById('ultimoUsuario');
+    function formatearFecha(timestamp) {
+      return new Date(timestamp).toLocaleString("es-MX", {
+        dateStyle: "medium",
+        timeStyle: "short",
+        timeZone: "America/Mexico_City"
+      });
+    }
 
     onValue(estadoRef, (snapshot) => {
-      const estado = snapshot.val();
-      if (estado === "DISPONIBLE") {
-        btn.textContent = "Disponible (Haz clic para ocupar)";
-        estadoTexto.textContent = "El laboratorio está DISPONIBLE";
-        btn.style.backgroundColor = "#4CAF50";
-      } else if (estado === "EN USO") {
-        btn.textContent = "En uso (Haz clic para liberar)";
-        estadoTexto.textContent = "El laboratorio está EN USO";
-        btn.style.backgroundColor = "#f44336";
+      const data = snapshot.val();
+      if (!data) return;
+
+      estadoTexto.textContent = `Estado actual: ${data.estado}`;
+      usuarioTexto.textContent = `Último cambio por: ${data.usuario}`;
+
+      if (data.estado === "DISPONIBLE") {
+        btn.style.backgroundColor = "green";
+        btn.textContent = "Cambiar a EN USO";
       } else {
-        btn.textContent = "Estado desconocido";
-        estadoTexto.textContent = "Estado no definido";
-        btn.style.backgroundColor = "#777";
+        btn.style.backgroundColor = "red";
+        btn.textContent = "Cambiar a DISPONIBLE";
+      }
+
+      if (data.historial) {
+        const ultimos = data.historial.slice(-2).reverse();
+        listaHistorial.innerHTML = "";
+        ultimos.forEach(entry => {
+          const li = document.createElement("li");
+          li.textContent = `${entry.usuario} cambió a ${entry.estado} el ${formatearFecha(entry.timestamp)}`;
+          listaHistorial.appendChild(li);
+        });
       }
     });
 
-    onValue(usuarioRef, (snapshot) => {
-      const usuario = snapshot.val();
-      if (usuario) {
-        ultimoUsuario.textContent = `Último cambio hecho por: ${usuario}`;
-      } else {
-        ultimoUsuario.textContent = `No hay usuario registrado`;
-      }
-    });
-
-    btn.addEventListener('click', () => {
-      const usuario = usuarioInput.value.trim();
+    btn.addEventListener("click", () => {
+      const usuario = nombreInput.value.trim();
       if (!usuario) {
-        alert("Por favor, escribe tu nombre antes de cambiar el estado.");
-        usuarioInput.focus();
+        alert("Por favor escribe tu nombre.");
         return;
       }
 
       onValue(estadoRef, (snapshot) => {
-        const estadoActual = snapshot.val();
-        const nuevoEstado = (estadoActual === "DISPONIBLE") ? "EN USO" : "DISPONIBLE";
+        const data = snapshot.val() || {};
+        const estadoActual = data.estado || "DISPONIBLE";
+        const nuevoEstado = estadoActual === "DISPONIBLE" ? "EN USO" : "DISPONIBLE";
+        const historial = data.historial || [];
 
-        set(ref(db, 'laboratorio'), {
+        historial.push({
+          usuario,
           estado: nuevoEstado,
-          usuario: usuario
+          timestamp: Date.now()
+        });
+
+        set(estadoRef, {
+          estado: nuevoEstado,
+          usuario,
+          historial
         });
       }, { once: true });
     });
-  </script>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      text-align: center;
-      padding: 20px;
-    }
-    #botonEstado {
-      font-size: 1.5em;
-      padding: 15px 30px;
-      border: none;
-      border-radius: 8px;
-      color: white;
-      cursor: pointer;
-      margin-top: 20px;
-      transition: background-color 0.3s ease;
-    }
-    #nombreUsuario {
-      font-size: 1em;
-      padding: 8px;
-      width: 200px;
-    }
-    #ultimoUsuario {
-      margin-top: 20px;
-      font-style: italic;
-      color: #555;
-    }
-  </style>
-</head>
-<body>
-  <h1>Estado del Laboratorio de Electrónica</h1>
-  <input id="nombreUsuario" type="text" placeholder="Escribe tu nombre" />
-  <br />
-  <button id="botonEstado">Cargando...</button>
-  <p id="estadoTexto">Cargando estado...</p>
-  <p id="ultimoUsuario">Cargando usuario...</p>
-</body>
+  </script></body>
 </html>
