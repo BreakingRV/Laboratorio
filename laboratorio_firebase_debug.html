@@ -2,33 +2,32 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <title>Estado en Tiempo Real</title>
+  <title>Estado del Laboratorio</title>
   <script type="module">
-    // IMPORTAR FIREBASE
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
     import { getDatabase, ref, onValue, update } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
 
-    // CONFIGURA TU FIREBASE
+    // Tu configuración de Firebase
     const firebaseConfig = {
-      apiKey: "TU_API_KEY",
-      authDomain: "TU_DOMINIO.firebaseapp.com",
-      databaseURL: "https://TU_PROYECTO.firebaseio.com",
-      projectId: "TU_PROJECT_ID",
-      storageBucket: "TU_BUCKET.appspot.com",
-      messagingSenderId: "TU_SENDER_ID",
-      appId: "TU_APP_ID"
+      apiKey: "AIzaSyApRN9cnGIPsW_kNHtSfPpXWD4_TwrrBPk",
+      authDomain: "estado-laboratorio.firebaseapp.com",
+      databaseURL: "https://estado-laboratorio-default-rtdb.firebaseio.com",
+      projectId: "estado-laboratorio",
+      storageBucket: "estado-laboratorio.firebasestorage.app",
+      messagingSenderId: "449135433069",
+      appId: "1:449135433069:web:acf49b3ef481ee9799f664",
+      measurementId: "G-HL7R07P79H"
     };
 
     const app = initializeApp(firebaseConfig);
     const db = getDatabase(app);
     const estadoRef = ref(db, "estado");
 
-    // Función para obtener hora de México
     function obtenerFechaMexico() {
       return new Date().toLocaleString("es-MX", { timeZone: "America/Mexico_City" });
     }
 
-    // Mostrar el estado actual en tiempo real
+    // Mostrar el estado en tiempo real
     onValue(estadoRef, (snapshot) => {
       const data = snapshot.val() || {};
       const estado = data.estado || "DISPONIBLE";
@@ -40,7 +39,6 @@
     // Cambiar estado al hacer clic
     document.addEventListener("DOMContentLoaded", () => {
       document.getElementById("btnEstado").addEventListener("click", () => {
-        // Solo leer una vez para evitar doble ejecución
         onValue(estadoRef, (snapshot) => {
           const data = snapshot.val() || {};
           const estadoActual = data.estado || "DISPONIBLE";
@@ -54,7 +52,7 @@
 
           update(estadoRef, {
             estado: nuevoEstado,
-            historial: [...historial.slice(-9), nuevaEntrada] // máx 10
+            historial: [...historial.slice(-9), nuevaEntrada] // últimos 10
           });
         }, { onlyOnce: true });
       });
@@ -66,22 +64,33 @@
       font-family: sans-serif;
       text-align: center;
       margin-top: 50px;
+      background-color: #f7f7f7;
     }
 
     #btnEstado {
       font-size: 18px;
-      padding: 10px 20px;
+      padding: 12px 24px;
       margin-top: 20px;
+      background-color: #007bff;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+
+    #btnEstado:hover {
+      background-color: #0056b3;
     }
 
     #estadoActual {
-      font-size: 24px;
+      font-size: 28px;
       margin-bottom: 10px;
+      color: #333;
     }
   </style>
 </head>
 <body>
-  <h1>Control de Estado</h1>
+  <h1>Estado del Laboratorio</h1>
   <div id="estadoActual">Cargando estado...</div>
   <button id="btnEstado">Cambiando estado...</button>
 </body>
