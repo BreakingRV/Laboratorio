@@ -1,108 +1,88 @@
-<!DOCTYPE html><html lang="es">
+<!DOCTYPE html>
+<html lang="es">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Estado del Laboratorio</title>
-  <style>
-    body { font-family: Arial, sans-serif; text-align: center; padding: 30px; }
-    button { font-size: 1.2em; padding: 10px 20px; margin-top: 10px; }
-    #estadoTexto { font-size: 1.5em; margin-top: 20px; }
-    #historial { margin-top: 20px; }
-  </style>
-</head>
-<body>
-  <h1>Estado del Laboratorio de Electrónica</h1>
-  <input id="nombreUsuario" type="text" placeholder="Escribe tu nombre" />
-  <br><br>
-  <button id="botonEstado">Cargando...</button>
-  <p id="estadoTexto">Cargando estado...</p>
-  <p id="ultimoUsuario">Cargando usuario...</p>
-  <div id="historial">
-    <h3>Últimos cambios</h3>
-    <ul id="listaHistorial"></ul>
-  </div>  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-app.js";
-    import { getDatabase, ref, onValue, set } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-database.js";
+  <title>Estado en Tiempo Real</title>
+  <script type="module">
+    // IMPORTAR FIREBASE
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+    import { getDatabase, ref, onValue, update } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
 
+    // CONFIGURA TU FIREBASE
     const firebaseConfig = {
-      apiKey: "AIzaSyApRN9cnGIPsW_kNHtSfPpXWD4_TwrrBPk",
-      authDomain: "estado-laboratorio.firebaseapp.com",
-      projectId: "estado-laboratorio",
-      storageBucket: "estado-laboratorio.firebasestorage.app",
-      messagingSenderId: "449135433069",
-      appId: "1:449135433069:web:acf49b3ef481ee9799f664",
-      measurementId: "G-HL7R07P79H"
+      apiKey: "TU_API_KEY",
+      authDomain: "TU_DOMINIO.firebaseapp.com",
+      databaseURL: "https://TU_PROYECTO.firebaseio.com",
+      projectId: "TU_PROJECT_ID",
+      storageBucket: "TU_BUCKET.appspot.com",
+      messagingSenderId: "TU_SENDER_ID",
+      appId: "TU_APP_ID"
     };
 
     const app = initializeApp(firebaseConfig);
     const db = getDatabase(app);
-    const estadoRef = ref(db, 'laboratorio');
+    const estadoRef = ref(db, "estado");
 
-    const btn = document.getElementById("botonEstado");
-    const nombreInput = document.getElementById("nombreUsuario");
-    const estadoTexto = document.getElementById("estadoTexto");
-    const usuarioTexto = document.getElementById("ultimoUsuario");
-    const listaHistorial = document.getElementById("listaHistorial");
-
-    function formatearFecha(timestamp) {
-      return new Date(timestamp).toLocaleString("es-MX", {
-        dateStyle: "medium",
-        timeStyle: "short",
-        timeZone: "America/Mexico_City"
-      });
+    // Función para obtener hora de México
+    function obtenerFechaMexico() {
+      return new Date().toLocaleString("es-MX", { timeZone: "America/Mexico_City" });
     }
 
+    // Mostrar el estado actual en tiempo real
     onValue(estadoRef, (snapshot) => {
-      const data = snapshot.val();
-      if (!data) return;
+      const data = snapshot.val() || {};
+      const estado = data.estado || "DISPONIBLE";
 
-      estadoTexto.textContent = `Estado actual: ${data.estado}`;
-      usuarioTexto.textContent = `Último cambio por: ${data.usuario}`;
-
-      if (data.estado === "DISPONIBLE") {
-        btn.style.backgroundColor = "green";
-        btn.textContent = "Cambiar a EN USO";
-      } else {
-        btn.style.backgroundColor = "red";
-        btn.textContent = "Cambiar a DISPONIBLE";
-      }
-
-      if (data.historial) {
-        const ultimos = data.historial.slice(-2).reverse();
-        listaHistorial.innerHTML = "";
-        ultimos.forEach(entry => {
-          const li = document.createElement("li");
-          li.textContent = `${entry.usuario} cambió a ${entry.estado} el ${formatearFecha(entry.timestamp)}`;
-          listaHistorial.appendChild(li);
-        });
-      }
+      document.getElementById("estadoActual").innerText = `Estado: ${estado}`;
+      document.getElementById("btnEstado").innerText = `Cambiar a ${estado === "DISPONIBLE" ? "EN USO" : "DISPONIBLE"}`;
     });
 
-    btn.addEventListener("click", () => {
-      const usuario = nombreInput.value.trim();
-      if (!usuario) {
-        alert("Por favor escribe tu nombre.");
-        return;
-      }
+    // Cambiar estado al hacer clic
+    document.addEventListener("DOMContentLoaded", () => {
+      document.getElementById("btnEstado").addEventListener("click", () => {
+        // Solo leer una vez para evitar doble ejecución
+        onValue(estadoRef, (snapshot) => {
+          const data = snapshot.val() || {};
+          const estadoActual = data.estado || "DISPONIBLE";
+          const nuevoEstado = estadoActual === "DISPONIBLE" ? "EN USO" : "DISPONIBLE";
+          const historial = data.historial || [];
 
-      onValue(estadoRef, (snapshot) => {
-        const data = snapshot.val() || {};
-        const estadoActual = data.estado || "DISPONIBLE";
-        const nuevoEstado = estadoActual === "DISPONIBLE" ? "EN USO" : "DISPONIBLE";
-        const historial = data.historial || [];
+          const nuevaEntrada = {
+            estado: nuevoEstado,
+            fecha: obtenerFechaMexico()
+          };
 
-        historial.push({
-          usuario,
-          estado: nuevoEstado,
-          timestamp: Date.now()
-        });
-
-        set(estadoRef, {
-          estado: nuevoEstado,
-          usuario,
-          historial
-        });
-      }, { once: true });
+          update(estadoRef, {
+            estado: nuevoEstado,
+            historial: [...historial.slice(-9), nuevaEntrada] // máx 10
+          });
+        }, { onlyOnce: true });
+      });
     });
-  </script></body>
+  </script>
+
+  <style>
+    body {
+      font-family: sans-serif;
+      text-align: center;
+      margin-top: 50px;
+    }
+
+    #btnEstado {
+      font-size: 18px;
+      padding: 10px 20px;
+      margin-top: 20px;
+    }
+
+    #estadoActual {
+      font-size: 24px;
+      margin-bottom: 10px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Control de Estado</h1>
+  <div id="estadoActual">Cargando estado...</div>
+  <button id="btnEstado">Cambiando estado...</button>
+</body>
 </html>
