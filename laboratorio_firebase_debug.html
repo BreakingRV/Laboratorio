@@ -2,7 +2,87 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Estado del Laboratorio</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 1rem;
+      background: #f7f9fc;
+      color: #222;
+      max-width: 480px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+    h1 {
+      font-size: 1.6rem;
+      margin-bottom: 0.5rem;
+      text-align: center;
+      color: #004aad;
+    }
+    #estado {
+      font-weight: bold;
+      color: #d9534f; /* rojo para EN USO */
+    }
+    #estado.disponible {
+      color: #28a745; /* verde para DISPONIBLE */
+    }
+    button {
+      display: block;
+      width: 100%;
+      padding: 0.75rem;
+      font-size: 1.1rem;
+      margin-top: 1rem;
+      background-color: #004aad;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: background-color 0.3s;
+    }
+    button:disabled {
+      background-color: #a0a0a0;
+      cursor: default;
+    }
+    button:hover:not(:disabled) {
+      background-color: #003580;
+    }
+    #historial {
+      margin-top: 1.5rem;
+      background: white;
+      padding: 1rem;
+      border-radius: 6px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+    }
+    #historial h2 {
+      margin-top: 0;
+      font-size: 1.3rem;
+      color: #004aad;
+      text-align: center;
+    }
+    #historial p {
+      font-size: 0.95rem;
+      margin: 0.4rem 0;
+      border-bottom: 1px solid #eee;
+      padding-bottom: 0.4rem;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Estado del Laboratorio: <span id="estado">Cargando...</span></h1>
+
+  <button id="btnCambiar" disabled title="Solo disponible si el estado es 'EN USO'">
+    Marcar como DISPONIBLE
+  </button>
+
+  <section id="historial">
+    <h2>Últimos 3 cambios</h2>
+    <div id="listaHistorial">
+      <p>Cargando historial...</p>
+    </div>
+  </section>
+
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
     import { getDatabase, ref, onValue, update, push, limitToLast, query } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
@@ -23,67 +103,75 @@
     const estadoRef = ref(db, 'estado');
     const historialRef = ref(db, 'historial');
 
-    const estadoSpan = document.getElementById("estado");
-    const historialDiv = document.getElementById("historial");
+    const estadoSpan = document.getElementById('estado');
+    const btnCambiar = document.getElementById('btnCambiar');
+    const listaHistorial = document.getElementById('listaHistorial');
 
-    // Mostrar estado en tiempo real
+    let estadoActual = null;
+
+    // Actualizar estado en pantalla
     onValue(estadoRef, (snapshot) => {
-      const estado = snapshot.val();
-      if (estado && estado.estado) {
-        estadoSpan.textContent = estado.estado;
-      } else {
-        estadoSpan.textContent = "No definido";
-      }
-    });
-
-    // Mostrar últimos 2 cambios del historial
-    onValue(query(historialRef, limitToLast(2)), (snapshot) => {
-      historialDiv.innerHTML = '';
-      const historial = [];
-      snapshot.forEach(child => {
-        historial.push(child.val());
-      });
-      historial.reverse().forEach(item => {
-        const p = document.createElement('p');
-        p.textContent = `${item.fecha} - ${item.nombre} cambió el estado a ${item.estado}`;
-        historialDiv.appendChild(p);
-      });
-    });
-
-    // Manejar el formulario para cambiar estado
-    document.getElementById("formulario").addEventListener("submit", async (e) => {
-      e.preventDefault();
-      const nombre = document.getElementById("nombre").value.trim();
-      const nuevoEstado = document.getElementById("nuevoEstado").value;
-      const fecha = new Date().toLocaleString("es-MX");
-
-      if (!nombre) {
-        alert("Por favor ingresa tu nombre.");
+      const estadoData = snapshot.val();
+      if (!estadoData || !estadoData.estado) {
+        estadoSpan.textContent = 'No definido';
+        estadoSpan.className = '';
+        btnCambiar.disabled = true;
         return;
       }
 
+      estadoActual = estadoData.estado;
+      estadoSpan.textContent = estadoActual;
+
+      // Cambiar color según estado
+      if (estadoActual === 'DISPONIBLE') {
+        estadoSpan.className = 'disponible';
+      } else {
+        estadoSpan.className = '';
+      }
+
+      // Sólo habilitar botón si estado es EN USO
+      btnCambiar.disabled = (estadoActual !== 'EN USO');
+    });
+
+    // Mostrar últimos 3 cambios del historial
+    onValue(query(historialRef, limitToLast(3)), (snapshot) => {
+      listaHistorial.innerHTML = '';
+      const cambios = [];
+      snapshot.forEach(child => cambios.push(child.val()));
+      cambios.reverse();
+
+      if (cambios.length === 0) {
+        listaHistorial.innerHTML = '<p>No hay cambios registrados.</p>';
+        return;
+      }
+
+      cambios.forEach(cambio => {
+        const p = document.createElement('p');
+        p.textContent = `${cambio.fecha} - ${cambio.nombre} cambió el estado a ${cambio.estado}`;
+        listaHistorial.appendChild(p);
+      });
+    });
+
+    // Acción del botón para cambiar estado a DISPONIBLE
+    btnCambiar.addEventListener('click', async () => {
+      if (estadoActual !== 'EN USO') return;
+
+      const nombre = prompt('Por favor, escribe tu nombre para registrar el cambio:');
+      if (!nombre || nombre.trim() === '') {
+        alert('Nombre obligatorio para cambiar el estado.');
+        return;
+      }
+
+      const fecha = new Date().toLocaleString('es-MX');
+
       try {
-        await update(estadoRef, { estado: nuevoEstado });
-        await push(historialRef, { nombre, estado: nuevoEstado, fecha });
-        document.getElementById("formulario").reset();
-        document.getElementById("nombre").focus();
+        await update(estadoRef, { estado: 'DISPONIBLE' });
+        await push(historialRef, { nombre: nombre.trim(), estado: 'DISPONIBLE', fecha });
       } catch (error) {
-        alert("Error al cambiar el estado: " + error.message);
+        alert('Error al actualizar estado: ' + error.message);
       }
     });
   </script>
-</head>
-<body>
-  <h1>Estado del Laboratorio: <span id="estado" aria-live="polite">Cargando...</span></h1>
-  <form id="formulario">
-    <input type="text" id="nombre" placeholder="Tu nombre" required autocomplete="off" />
-    <select id="nuevoEstado" aria-label="Nuevo estado">
-      <option value="DISPONIBLE">DISPONIBLE</option>
-      <option value="EN USO">EN USO</option>
-    </select>
-    <button type="submit">Cambiar Estado</button>
-  </form>
-  <h2>Últimos cambios</h2>
-  <div id="historial"></div>
+
 </body>
 </html>
