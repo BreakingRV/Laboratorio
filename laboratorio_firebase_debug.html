@@ -1,11 +1,11 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
   <title>Estado del Laboratorio</title>
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-    import { getDatabase, ref, onValue, update, push, limitToLast, query, get } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+    import { getDatabase, ref, onValue, update, push, limitToLast, query } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyApRN9cnGIPsW_kNHtSfPpXWD4_TwrrBPk",
@@ -26,11 +26,17 @@
     const estadoSpan = document.getElementById("estado");
     const historialDiv = document.getElementById("historial");
 
+    // Mostrar estado en tiempo real
     onValue(estadoRef, (snapshot) => {
       const estado = snapshot.val();
-      estadoSpan.textContent = estado.estado;
+      if (estado && estado.estado) {
+        estadoSpan.textContent = estado.estado;
+      } else {
+        estadoSpan.textContent = "No definido";
+      }
     });
 
+    // Mostrar últimos 2 cambios del historial
     onValue(query(historialRef, limitToLast(2)), (snapshot) => {
       historialDiv.innerHTML = '';
       const historial = [];
@@ -44,31 +50,34 @@
       });
     });
 
+    // Manejar el formulario para cambiar estado
     document.getElementById("formulario").addEventListener("submit", async (e) => {
       e.preventDefault();
-      const nombre = document.getElementById("nombre").value;
+      const nombre = document.getElementById("nombre").value.trim();
       const nuevoEstado = document.getElementById("nuevoEstado").value;
       const fecha = new Date().toLocaleString("es-MX");
 
-      await update(estadoRef, {
-        estado: nuevoEstado
-      });
+      if (!nombre) {
+        alert("Por favor ingresa tu nombre.");
+        return;
+      }
 
-      await push(historialRef, {
-        nombre,
-        estado: nuevoEstado,
-        fecha
-      });
-
-      document.getElementById("formulario").reset();
+      try {
+        await update(estadoRef, { estado: nuevoEstado });
+        await push(historialRef, { nombre, estado: nuevoEstado, fecha });
+        document.getElementById("formulario").reset();
+        document.getElementById("nombre").focus();
+      } catch (error) {
+        alert("Error al cambiar el estado: " + error.message);
+      }
     });
   </script>
 </head>
 <body>
-  <h1>Estado del Laboratorio: <span id="estado">Cargando...</span></h1>
+  <h1>Estado del Laboratorio: <span id="estado" aria-live="polite">Cargando...</span></h1>
   <form id="formulario">
-    <input type="text" id="nombre" placeholder="Tu nombre" required />
-    <select id="nuevoEstado">
+    <input type="text" id="nombre" placeholder="Tu nombre" required autocomplete="off" />
+    <select id="nuevoEstado" aria-label="Nuevo estado">
       <option value="DISPONIBLE">DISPONIBLE</option>
       <option value="EN USO">EN USO</option>
     </select>
