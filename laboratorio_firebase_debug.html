@@ -80,7 +80,7 @@
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-    import { getDatabase, ref, onValue, set, push, limitToLast, query } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+    import { getDatabase, ref, onValue, update, push, limitToLast, query } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyApRN9cnGIPsW_kNHtSfPpXWD4_TwrrBPk",
@@ -101,13 +101,12 @@
     const estadoSpan = document.getElementById("estado");
     const historialDiv = document.getElementById("historial");
 
-    // Mostrar el estado directamente
+    // Mantiene compatibilidad con estructura { estado: "DISPONIBLE" }
     onValue(estadoRef, (snapshot) => {
-      const estado = snapshot.val();
-      estadoSpan.textContent = estado || 'Sin estado';
+      const data = snapshot.val();
+      estadoSpan.textContent = data && data.estado ? data.estado : 'Sin estado';
     });
 
-    // Mostrar los últimos 2 cambios
     onValue(query(historialRef, limitToLast(2)), (snapshot) => {
       historialDiv.innerHTML = '';
       const historial = [];
@@ -121,17 +120,16 @@
       });
     });
 
-    // Enviar cambios al hacer submit
     document.getElementById("formulario").addEventListener("submit", async (e) => {
       e.preventDefault();
       const nombre = document.getElementById("nombre").value;
       const nuevoEstado = document.getElementById("nuevoEstado").value;
       const fecha = new Date().toLocaleString("es-MX");
 
-      // Guardar el estado como valor directo (texto)
-      await set(estadoRef, nuevoEstado);
+      await update(estadoRef, {
+        estado: nuevoEstado
+      });
 
-      // Agregar al historial
       await push(historialRef, {
         nombre,
         estado: nuevoEstado,
