@@ -125,8 +125,11 @@
     boton.addEventListener("click", async () => {
       if (estadoActual !== "EN USO") return;
 
-      const nombre = prompt("Ingresa tu nombre:");
-      if (!nombre || nombre.trim() === "") return;
+      const nombre = prompt("Ingresa tu nombre para registrar el cambio:");
+      if (!nombre || nombre.trim() === "") {
+        alert("Debes ingresar un nombre válido.");
+        return;
+      }
 
       const fecha = new Date().toLocaleString("es-MX");
 
