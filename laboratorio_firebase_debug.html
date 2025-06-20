@@ -3,144 +3,112 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Laboratorio</title>
-  <style>
-    body {
-      font-family: sans-serif;
-      padding: 1rem;
-      max-width: 480px;
-      margin: auto;
-      background: #f0f0f0;
-    }
-    h1 {
-      text-align: center;
-      font-size: 1.5rem;
-    }
-    #estado {
-      font-weight: bold;
-      color: red;
-    }
-    #estado.disponible {
-      color: green;
-    }
-    button {
-      width: 100%;
-      padding: 0.8rem;
-      font-size: 1rem;
-      background: #007bff;
-      color: white;
-      border: none;
-      border-radius: 5px;
-      margin-top: 1rem;
-    }
-    button:disabled {
-      background: #aaa;
-    }
-    #historial {
-      margin-top: 2rem;
-      background: white;
-      padding: 1rem;
-      border-radius: 5px;
-    }
-    #historial h2 {
-      font-size: 1.2rem;
-      margin-top: 0;
-    }
-    #historial p {
-      margin: 0.5rem 0;
-      border-bottom: 1px solid #eee;
-      padding-bottom: 0.5rem;
-    }
-  </style>
-</head>
-<body>
-
-  <h1>Estado del Laboratorio: <span id="estado">Cargando...</span></h1>
-
-  <button id="boton" disabled>Marcar como DISPONIBLE</button>
-
-  <div id="historial">
-    <h2>Últimos 3 cambios</h2>
-    <div id="cambios">
-      <p>Cargando historial...</p>
-    </div>
-  </div>
-
+  <title>Estado Laboratorio</title>
   <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-    import { getDatabase, ref, onValue, update, push, query, limitToLast } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-app.js";
+    import { getDatabase, ref, onValue, set } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-database.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyApRN9cnGIPsW_kNHtSfPpXWD4_TwrrBPk",
-      authDomain: "laboratorio-ejemplo.firebaseapp.com",
-      databaseURL: "https://laboratorio-ejemplo-default-rtdb.firebaseio.com",
-      projectId: "laboratorio-ejemplo",
-      storageBucket: "laboratorio-ejemplo.appspot.com",
-      messagingSenderId: "1234567890",
-      appId: "1:1234567890:web:abcdef123456"
+      authDomain: "estado-laboratorio.firebaseapp.com",
+      databaseURL: "https://estado-laboratorio-default-rtdb.firebaseio.com",
+      projectId: "estado-laboratorio",
+      storageBucket: "estado-laboratorio.appspot.com",
+      messagingSenderId: "449135433069",
+      appId: "1:449135433069:web:acf49b3ef481ee9799f664",
+      measurementId: "G-HL7R07P79H"
     };
 
     const app = initializeApp(firebaseConfig);
     const db = getDatabase(app);
 
-    const estadoRef = ref(db, "estado");
-    const historialRef = ref(db, "historial");
+    const estadoRef = ref(db, 'laboratorio/estado');
+    const usuarioRef = ref(db, 'laboratorio/usuario');
 
-    const estadoSpan = document.getElementById("estado");
-    const boton = document.getElementById("boton");
-    const cambiosDiv = document.getElementById("cambios");
+    const btn = document.getElementById('botonEstado');
+    const estadoTexto = document.getElementById('estadoTexto');
+    const usuarioInput = document.getElementById('nombreUsuario');
+    const ultimoUsuario = document.getElementById('ultimoUsuario');
 
-    let estadoActual = "";
-
-    // Mostrar estado actual
     onValue(estadoRef, (snapshot) => {
-      const data = snapshot.val();
-      estadoActual = data?.estado || "No definido";
-      estadoSpan.textContent = estadoActual;
-
-      if (estadoActual === "DISPONIBLE") {
-        estadoSpan.className = "disponible";
-        boton.disabled = true;
-      } else if (estadoActual === "EN USO") {
-        estadoSpan.className = "";
-        boton.disabled = false;
+      const estado = snapshot.val();
+      if (estado === "DISPONIBLE") {
+        btn.textContent = "Disponible (Haz clic para ocupar)";
+        estadoTexto.textContent = "El laboratorio está DISPONIBLE";
+        btn.style.backgroundColor = "#4CAF50";
+      } else if (estado === "EN USO") {
+        btn.textContent = "En uso (Haz clic para liberar)";
+        estadoTexto.textContent = "El laboratorio está EN USO";
+        btn.style.backgroundColor = "#f44336";
       } else {
-        boton.disabled = true;
+        btn.textContent = "Estado desconocido";
+        estadoTexto.textContent = "Estado no definido";
+        btn.style.backgroundColor = "#777";
       }
     });
 
-    // Mostrar últimos 3 cambios
-    onValue(query(historialRef, limitToLast(3)), (snapshot) => {
-      cambiosDiv.innerHTML = "";
-      const historial = [];
-      snapshot.forEach(child => historial.push(child.val()));
-      historial.reverse().forEach(entry => {
-        const p = document.createElement("p");
-        p.textContent = `${entry.fecha} - ${entry.nombre} cambió a ${entry.estado}`;
-        cambiosDiv.appendChild(p);
-      });
+    onValue(usuarioRef, (snapshot) => {
+      const usuario = snapshot.val();
+      if (usuario) {
+        ultimoUsuario.textContent = `Último cambio hecho por: ${usuario}`;
+      } else {
+        ultimoUsuario.textContent = `No hay usuario registrado`;
+      }
     });
 
-    // Cambiar estado a DISPONIBLE
-    boton.addEventListener("click", async () => {
-      if (estadoActual !== "EN USO") return;
-
-      const nombre = prompt("Ingresa tu nombre para registrar el cambio:");
-      if (!nombre || nombre.trim() === "") {
-        alert("Debes ingresar un nombre válido.");
+    btn.addEventListener('click', () => {
+      const usuario = usuarioInput.value.trim();
+      if (!usuario) {
+        alert("Por favor, escribe tu nombre antes de cambiar el estado.");
+        usuarioInput.focus();
         return;
       }
 
-      const fecha = new Date().toLocaleString("es-MX");
+      onValue(estadoRef, (snapshot) => {
+        const estadoActual = snapshot.val();
+        const nuevoEstado = (estadoActual === "DISPONIBLE") ? "EN USO" : "DISPONIBLE";
 
-      await update(estadoRef, { estado: "DISPONIBLE" });
-      await push(historialRef, {
-        nombre: nombre.trim(),
-        estado: "DISPONIBLE",
-        fecha
-      });
+        set(ref(db, 'laboratorio'), {
+          estado: nuevoEstado,
+          usuario: usuario
+        });
+      }, { once: true });
     });
   </script>
-
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      padding: 20px;
+    }
+    #botonEstado {
+      font-size: 1.5em;
+      padding: 15px 30px;
+      border: none;
+      border-radius: 8px;
+      color: white;
+      cursor: pointer;
+      margin-top: 20px;
+      transition: background-color 0.3s ease;
+    }
+    #nombreUsuario {
+      font-size: 1em;
+      padding: 8px;
+      width: 200px;
+    }
+    #ultimoUsuario {
+      margin-top: 20px;
+      font-style: italic;
+      color: #555;
+    }
+  </style>
+</head>
+<body>
+  <h1>Estado del Laboratorio de Electrónica</h1>
+  <input id="nombreUsuario" type="text" placeholder="Escribe tu nombre" />
+  <br />
+  <button id="botonEstado">Cargando...</button>
+  <p id="estadoTexto">Cargando estado...</p>
+  <p id="ultimoUsuario">Cargando usuario...</p>
 </body>
 </html>
