@@ -1,135 +1,159 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Estado del Laboratorio</title>
+  <style>
+    body {
+      font-family: "Segoe UI", sans-serif;
+      background-color: #f4f6f8;
+      color: #333;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      justify-content: center;
+    }
+
+    .container {
+      max-width: 500px;
+      width: 100%;
+      margin-top: 50px;
+      background: #fff;
+      padding: 2rem;
+      border-radius: 15px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+
+    h1, h2 {
+      text-align: center;
+      color: #2c3e50;
+    }
+
+    #estado {
+      font-weight: bold;
+      color: #27ae60;
+    }
+
+    form {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+      margin-top: 20px;
+    }
+
+    input, select, button {
+      padding: 10px;
+      font-size: 1rem;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+      outline: none;
+    }
+
+    button {
+      background-color: #3498db;
+      color: white;
+      border: none;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+    }
+
+    button:hover {
+      background-color: #2980b9;
+    }
+
+    #historial {
+      margin-top: 20px;
+      background-color: #f0f3f5;
+      padding: 10px;
+      border-radius: 10px;
+    }
+
+    #historial p {
+      margin: 0.5rem 0;
+      padding: 0.5rem;
+      background-color: #fff;
+      border-radius: 6px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    }
+  </style>
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-    import { getDatabase, ref, onValue, update } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+    import { getDatabase, ref, onValue, update, push, limitToLast, query } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyApRN9cnGIPsW_kNHtSfPpXWD4_TwrrBPk",
-      authDomain: "estado-laboratorio.firebaseapp.com",
-      databaseURL: "https://estado-laboratorio-default-rtdb.firebaseio.com",
-      projectId: "estado-laboratorio",
-      storageBucket: "estado-laboratorio.firebasestorage.app",
-      messagingSenderId: "449135433069",
-      appId: "1:449135433069:web:acf49b3ef481ee9799f664",
-      measurementId: "G-HL7R07P79H"
+      authDomain: "laboratorio-ejemplo.firebaseapp.com",
+      databaseURL: "https://laboratorio-ejemplo-default-rtdb.firebaseio.com",
+      projectId: "laboratorio-ejemplo",
+      storageBucket: "laboratorio-ejemplo.appspot.com",
+      messagingSenderId: "1234567890",
+      appId: "1:1234567890:web:abcdef123456"
     };
 
     const app = initializeApp(firebaseConfig);
     const db = getDatabase(app);
-    const estadoRef = ref(db, "estado");
 
-    function obtenerFechaMexico() {
-      return new Date().toLocaleString("es-MX", { timeZone: "America/Mexico_City" });
-    }
+    const estadoRef = ref(db, 'estado');
+    const historialRef = ref(db, 'historial');
 
-    // Actualizar visualmente el estado y el historial
+    const estadoSpan = document.getElementById("estado");
+    const historialDiv = document.getElementById("historial");
+
     onValue(estadoRef, (snapshot) => {
-      const data = snapshot.val() || {};
-      const estado = data.estado || "DISPONIBLE";
-      const historial = data.historial || [];
+      const estado = snapshot.val();
+      estadoSpan.textContent = estado.estado;
+    });
 
-      document.getElementById("estadoActual").innerText = `Estado: ${estado}`;
-      document.getElementById("btnEstado").innerText = `Cambiar a ${estado === "DISPONIBLE" ? "EN USO" : "DISPONIBLE"}`;
-
-      // Mostrar los últimos 2 registros
-      const contenedorHistorial = document.getElementById("historial");
-      contenedorHistorial.innerHTML = "<h3>Últimos cambios</h3>";
-      historial.slice(-2).reverse().forEach((item) => {
-        const div = document.createElement("div");
-        div.innerText = `${item.fecha} - ${item.nombre || "Desconocido"} cambió a ${item.estado}`;
-        contenedorHistorial.appendChild(div);
+    onValue(query(historialRef, limitToLast(2)), (snapshot) => {
+      historialDiv.innerHTML = '';
+      const historial = [];
+      snapshot.forEach(child => {
+        historial.push(child.val());
+      });
+      historial.reverse().forEach(item => {
+        const p = document.createElement('p');
+        p.textContent = `${item.fecha} - ${item.nombre} cambió el estado a ${item.estado}`;
+        historialDiv.appendChild(p);
       });
     });
 
-    // Cambio de estado con nombre
-    document.addEventListener("DOMContentLoaded", () => {
-      document.getElementById("btnEstado").addEventListener("click", () => {
-        const nombre = document.getElementById("nombre").value.trim();
-        if (!nombre) {
-          alert("Por favor ingresa tu nombre antes de cambiar el estado.");
-          return;
-        }
+    document.getElementById("formulario").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const nombre = document.getElementById("nombre").value;
+      const nuevoEstado = document.getElementById("nuevoEstado").value;
+      const fecha = new Date().toLocaleString("es-MX");
 
-        onValue(estadoRef, (snapshot) => {
-          const data = snapshot.val() || {};
-          const estadoActual = data.estado || "DISPONIBLE";
-          const nuevoEstado = estadoActual === "DISPONIBLE" ? "EN USO" : "DISPONIBLE";
-          const historial = data.historial || [];
-
-          const nuevaEntrada = {
-            estado: nuevoEstado,
-            fecha: obtenerFechaMexico(),
-            nombre: nombre
-          };
-
-          update(estadoRef, {
-            estado: nuevoEstado,
-            historial: [...historial.slice(-9), nuevaEntrada]
-          });
-
-          // Limpia el nombre
-          document.getElementById("nombre").value = "";
-        }, { onlyOnce: true });
+      await update(estadoRef, {
+        estado: nuevoEstado
       });
+
+      await push(historialRef, {
+        nombre,
+        estado: nuevoEstado,
+        fecha
+      });
+
+      document.getElementById("formulario").reset();
     });
   </script>
-
-  <style>
-    body {
-      font-family: sans-serif;
-      text-align: center;
-      margin: 30px;
-      background-color: #f7f7f7;
-    }
-
-    #btnEstado {
-      font-size: 18px;
-      padding: 12px 24px;
-      margin-top: 15px;
-      background-color: #007bff;
-      color: white;
-      border: none;
-      border-radius: 8px;
-      cursor: pointer;
-    }
-
-    #btnEstado:hover {
-      background-color: #0056b3;
-    }
-
-    #estadoActual {
-      font-size: 28px;
-      margin-bottom: 10px;
-      color: #333;
-    }
-
-    #historial {
-      margin-top: 30px;
-      font-size: 16px;
-      color: #555;
-    }
-
-    input {
-      padding: 10px;
-      border-radius: 6px;
-      border: 1px solid #ccc;
-      width: 250px;
-      margin-top: 20px;
-    }
-  </style>
 </head>
 <body>
-  <h1>Estado del Laboratorio</h1>
-  <div id="estadoActual">Cargando estado...</div>
+  <div class="container">
+    <h1>Estado del Laboratorio:</h1>
+    <h2><span id="estado">Cargando...</span></h2>
 
-  <input type="text" id="nombre" placeholder="Tu nombre">
-  <br>
-  <button id="btnEstado">Cargando botón...</button>
+    <form id="formulario">
+      <input type="text" id="nombre" placeholder="Tu nombre" required />
+      <select id="nuevoEstado">
+        <option value="DISPONIBLE">DISPONIBLE</option>
+        <option value="EN USO">EN USO</option>
+      </select>
+      <button type="submit">Cambiar Estado</button>
+    </form>
 
-  <div id="historial"></div>
+    <h2>Últimos cambios</h2>
+    <div id="historial"></div>
+  </div>
 </body>
 </html>
