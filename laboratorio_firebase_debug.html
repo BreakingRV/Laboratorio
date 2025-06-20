@@ -1,11 +1,85 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Estado del Laboratorio</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background-color: #f0f2f5;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      justify-content: center;
+    }
+
+    .container {
+      max-width: 500px;
+      width: 100%;
+      background-color: white;
+      padding: 2rem;
+      margin-top: 50px;
+      border-radius: 15px;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    }
+
+    h1, h2 {
+      text-align: center;
+      color: #2c3e50;
+    }
+
+    #estado {
+      font-size: 1.5rem;
+      font-weight: bold;
+      color: #27ae60;
+    }
+
+    form {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+      margin-top: 20px;
+    }
+
+    input, select, button {
+      padding: 10px;
+      font-size: 1rem;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+    }
+
+    button {
+      background-color: #3498db;
+      color: white;
+      border: none;
+      cursor: pointer;
+      transition: background-color 0.3s;
+    }
+
+    button:hover {
+      background-color: #2980b9;
+    }
+
+    #historial {
+      margin-top: 20px;
+      padding: 10px;
+      background-color: #f9f9f9;
+      border-radius: 10px;
+    }
+
+    #historial p {
+      background-color: #fff;
+      padding: 8px;
+      border-radius: 6px;
+      margin: 6px 0;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    }
+  </style>
+
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-    import { getDatabase, ref, onValue, update, push, limitToLast, query } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+    import { getDatabase, ref, onValue, update, push, query, limitToLast } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyApRN9cnGIPsW_kNHtSfPpXWD4_TwrrBPk",
@@ -26,33 +100,34 @@
     const estadoSpan = document.getElementById("estado");
     const historialDiv = document.getElementById("historial");
 
+    // Mostrar el estado actual
     onValue(estadoRef, (snapshot) => {
-      const estado = snapshot.val();
-      estadoSpan.textContent = estado.estado;
+      const data = snapshot.val();
+      estadoSpan.textContent = data && data.estado ? data.estado : "Sin estado";
     });
 
+    // Mostrar últimos 2 cambios
     onValue(query(historialRef, limitToLast(2)), (snapshot) => {
       historialDiv.innerHTML = '';
-      const historial = [];
-      snapshot.forEach(child => {
-        historial.push(child.val());
-      });
-      historial.reverse().forEach(item => {
+      const cambios = [];
+      snapshot.forEach(child => cambios.push(child.val()));
+      cambios.reverse().forEach(item => {
         const p = document.createElement('p');
         p.textContent = `${item.fecha} - ${item.nombre} cambió el estado a ${item.estado}`;
         historialDiv.appendChild(p);
       });
     });
 
+    // Enviar cambios
     document.getElementById("formulario").addEventListener("submit", async (e) => {
       e.preventDefault();
-      const nombre = document.getElementById("nombre").value;
+      const nombre = document.getElementById("nombre").value.trim();
       const nuevoEstado = document.getElementById("nuevoEstado").value;
       const fecha = new Date().toLocaleString("es-MX");
 
-      await update(estadoRef, {
-        estado: nuevoEstado
-      });
+      if (!nombre) return alert("Por favor escribe tu nombre.");
+
+      await update(estadoRef, { estado: nuevoEstado });
 
       await push(historialRef, {
         nombre,
@@ -65,16 +140,21 @@
   </script>
 </head>
 <body>
-  <h1>Estado del Laboratorio: <span id="estado">Cargando...</span></h1>
-  <form id="formulario">
-    <input type="text" id="nombre" placeholder="Tu nombre" required />
-    <select id="nuevoEstado">
-      <option value="DISPONIBLE">DISPONIBLE</option>
-      <option value="EN USO">EN USO</option>
-    </select>
-    <button type="submit">Cambiar Estado</button>
-  </form>
-  <h2>Últimos cambios</h2>
-  <div id="historial"></div>
+  <div class="container">
+    <h1>Estado del Laboratorio:</h1>
+    <h2><span id="estado">Cargando...</span></h2>
+
+    <form id="formulario">
+      <input type="text" id="nombre" placeholder="Tu nombre" required />
+      <select id="nuevoEstado">
+        <option value="DISPONIBLE">DISPONIBLE</option>
+        <option value="EN USO">EN USO</option>
+      </select>
+      <button type="submit">Cambiar Estado</button>
+    </form>
+
+    <h2>Últimos cambios</h2>
+    <div id="historial"></div>
+  </div>
 </body>
 </html>
