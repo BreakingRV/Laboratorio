@@ -3,68 +3,53 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Estado del Laboratorio</title>
+  <title>Laboratorio</title>
   <style>
     body {
-      font-family: Arial, sans-serif;
-      margin: 1rem;
-      background: #f7f9fc;
-      color: #222;
+      font-family: sans-serif;
+      padding: 1rem;
       max-width: 480px;
-      margin-left: auto;
-      margin-right: auto;
+      margin: auto;
+      background: #f0f0f0;
     }
     h1 {
-      font-size: 1.6rem;
-      margin-bottom: 0.5rem;
       text-align: center;
-      color: #004aad;
+      font-size: 1.5rem;
     }
     #estado {
       font-weight: bold;
-      color: #d9534f; /* rojo para EN USO */
+      color: red;
     }
     #estado.disponible {
-      color: #28a745; /* verde para DISPONIBLE */
+      color: green;
     }
     button {
-      display: block;
       width: 100%;
-      padding: 0.75rem;
-      font-size: 1.1rem;
-      margin-top: 1rem;
-      background-color: #004aad;
+      padding: 0.8rem;
+      font-size: 1rem;
+      background: #007bff;
       color: white;
       border: none;
-      border-radius: 6px;
-      cursor: pointer;
-      transition: background-color 0.3s;
+      border-radius: 5px;
+      margin-top: 1rem;
     }
     button:disabled {
-      background-color: #a0a0a0;
-      cursor: default;
-    }
-    button:hover:not(:disabled) {
-      background-color: #003580;
+      background: #aaa;
     }
     #historial {
-      margin-top: 1.5rem;
+      margin-top: 2rem;
       background: white;
       padding: 1rem;
-      border-radius: 6px;
-      box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+      border-radius: 5px;
     }
     #historial h2 {
+      font-size: 1.2rem;
       margin-top: 0;
-      font-size: 1.3rem;
-      color: #004aad;
-      text-align: center;
     }
     #historial p {
-      font-size: 0.95rem;
-      margin: 0.4rem 0;
+      margin: 0.5rem 0;
       border-bottom: 1px solid #eee;
-      padding-bottom: 0.4rem;
+      padding-bottom: 0.5rem;
     }
   </style>
 </head>
@@ -72,20 +57,18 @@
 
   <h1>Estado del Laboratorio: <span id="estado">Cargando...</span></h1>
 
-  <button id="btnCambiar" disabled title="Solo disponible si el estado es 'EN USO'">
-    Marcar como DISPONIBLE
-  </button>
+  <button id="boton" disabled>Marcar como DISPONIBLE</button>
 
-  <section id="historial">
+  <div id="historial">
     <h2>Últimos 3 cambios</h2>
-    <div id="listaHistorial">
+    <div id="cambios">
       <p>Cargando historial...</p>
     </div>
-  </section>
+  </div>
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-    import { getDatabase, ref, onValue, update, push, limitToLast, query } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+    import { getDatabase, ref, onValue, update, push, query, limitToLast } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyApRN9cnGIPsW_kNHtSfPpXWD4_TwrrBPk",
@@ -100,76 +83,59 @@
     const app = initializeApp(firebaseConfig);
     const db = getDatabase(app);
 
-    const estadoRef = ref(db, 'estado');
-    const historialRef = ref(db, 'historial');
+    const estadoRef = ref(db, "estado");
+    const historialRef = ref(db, "historial");
 
-    const estadoSpan = document.getElementById('estado');
-    const btnCambiar = document.getElementById('btnCambiar');
-    const listaHistorial = document.getElementById('listaHistorial');
+    const estadoSpan = document.getElementById("estado");
+    const boton = document.getElementById("boton");
+    const cambiosDiv = document.getElementById("cambios");
 
-    let estadoActual = null;
+    let estadoActual = "";
 
-    // Actualizar estado en pantalla
+    // Mostrar estado actual
     onValue(estadoRef, (snapshot) => {
-      const estadoData = snapshot.val();
-      if (!estadoData || !estadoData.estado) {
-        estadoSpan.textContent = 'No definido';
-        estadoSpan.className = '';
-        btnCambiar.disabled = true;
-        return;
-      }
-
-      estadoActual = estadoData.estado;
+      const data = snapshot.val();
+      estadoActual = data?.estado || "No definido";
       estadoSpan.textContent = estadoActual;
 
-      // Cambiar color según estado
-      if (estadoActual === 'DISPONIBLE') {
-        estadoSpan.className = 'disponible';
+      if (estadoActual === "DISPONIBLE") {
+        estadoSpan.className = "disponible";
+        boton.disabled = true;
+      } else if (estadoActual === "EN USO") {
+        estadoSpan.className = "";
+        boton.disabled = false;
       } else {
-        estadoSpan.className = '';
+        boton.disabled = true;
       }
-
-      // Sólo habilitar botón si estado es EN USO
-      btnCambiar.disabled = (estadoActual !== 'EN USO');
     });
 
-    // Mostrar últimos 3 cambios del historial
+    // Mostrar últimos 3 cambios
     onValue(query(historialRef, limitToLast(3)), (snapshot) => {
-      listaHistorial.innerHTML = '';
-      const cambios = [];
-      snapshot.forEach(child => cambios.push(child.val()));
-      cambios.reverse();
-
-      if (cambios.length === 0) {
-        listaHistorial.innerHTML = '<p>No hay cambios registrados.</p>';
-        return;
-      }
-
-      cambios.forEach(cambio => {
-        const p = document.createElement('p');
-        p.textContent = `${cambio.fecha} - ${cambio.nombre} cambió el estado a ${cambio.estado}`;
-        listaHistorial.appendChild(p);
+      cambiosDiv.innerHTML = "";
+      const historial = [];
+      snapshot.forEach(child => historial.push(child.val()));
+      historial.reverse().forEach(entry => {
+        const p = document.createElement("p");
+        p.textContent = `${entry.fecha} - ${entry.nombre} cambió a ${entry.estado}`;
+        cambiosDiv.appendChild(p);
       });
     });
 
-    // Acción del botón para cambiar estado a DISPONIBLE
-    btnCambiar.addEventListener('click', async () => {
-      if (estadoActual !== 'EN USO') return;
+    // Cambiar estado a DISPONIBLE
+    boton.addEventListener("click", async () => {
+      if (estadoActual !== "EN USO") return;
 
-      const nombre = prompt('Por favor, escribe tu nombre para registrar el cambio:');
-      if (!nombre || nombre.trim() === '') {
-        alert('Nombre obligatorio para cambiar el estado.');
-        return;
-      }
+      const nombre = prompt("Ingresa tu nombre:");
+      if (!nombre || nombre.trim() === "") return;
 
-      const fecha = new Date().toLocaleString('es-MX');
+      const fecha = new Date().toLocaleString("es-MX");
 
-      try {
-        await update(estadoRef, { estado: 'DISPONIBLE' });
-        await push(historialRef, { nombre: nombre.trim(), estado: 'DISPONIBLE', fecha });
-      } catch (error) {
-        alert('Error al actualizar estado: ' + error.message);
-      }
+      await update(estadoRef, { estado: "DISPONIBLE" });
+      await push(historialRef, {
+        nombre: nombre.trim(),
+        estado: "DISPONIBLE",
+        fecha
+      });
     });
   </script>
 
