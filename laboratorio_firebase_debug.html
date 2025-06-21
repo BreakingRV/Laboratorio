@@ -6,7 +6,9 @@
   <title>Estado Laboratorio</title>
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-app.js";
-    import { getDatabase, ref, onValue, set } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-database.js";
+    import {
+      getDatabase, ref, onValue, set, push, query, limitToLast
+    } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-database.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyApRN9cnGIPsW_kNHtSfPpXWD4_TwrrBPk",
@@ -24,11 +26,13 @@
 
     const estadoRef = ref(db, 'laboratorio/estado');
     const usuarioRef = ref(db, 'laboratorio/usuario');
+    const historialRef = query(ref(db, 'laboratorio/historial'), limitToLast(2));
 
     const btn = document.getElementById('botonEstado');
     const estadoTexto = document.getElementById('estadoTexto');
     const usuarioInput = document.getElementById('nombreUsuario');
     const ultimoUsuario = document.getElementById('ultimoUsuario');
+    const historialContainer = document.getElementById('historialCambios');
 
     onValue(estadoRef, (snapshot) => {
       const estado = snapshot.val();
@@ -67,19 +71,43 @@
       onValue(estadoRef, (snapshot) => {
         const estadoActual = snapshot.val();
         const nuevoEstado = (estadoActual === "DISPONIBLE") ? "EN USO" : "DISPONIBLE";
+        const fechaHora = new Date().toLocaleString("es-MX");
 
         set(ref(db, 'laboratorio'), {
           estado: nuevoEstado,
           usuario: usuario
         });
+
+        push(ref(db, 'laboratorio/historial'), {
+          estado: nuevoEstado,
+          usuario: usuario,
+          fecha: fechaHora
+        });
       }, { once: true });
     });
+
+    onValue(historialRef, (snapshot) => {
+      const historial = snapshot.val();
+      if (!historial) {
+        historialContainer.innerHTML = "No hay historial aún.";
+        return;
+      }
+
+      const entradas = Object.values(historial)
+        .reverse()
+        .map(entry => `<li>${entry.fecha} - ${entry.usuario} cambió a ${entry.estado}</li>`);
+
+      historialContainer.innerHTML = `<ul>${entradas.join("")}</ul>`;
+    });
   </script>
+
   <style>
     body {
       font-family: Arial, sans-serif;
       text-align: center;
       padding: 20px;
+      max-width: 500px;
+      margin: auto;
     }
     #botonEstado {
       font-size: 1.5em;
@@ -90,16 +118,26 @@
       cursor: pointer;
       margin-top: 20px;
       transition: background-color 0.3s ease;
+      width: 90%;
+      max-width: 300px;
     }
     #nombreUsuario {
       font-size: 1em;
       padding: 8px;
-      width: 200px;
+      width: 90%;
+      max-width: 300px;
     }
     #ultimoUsuario {
       margin-top: 20px;
       font-style: italic;
       color: #555;
+    }
+    #historialCambios {
+      margin-top: 30px;
+      text-align: left;
+    }
+    #historialCambios ul {
+      padding-left: 20px;
     }
   </style>
 </head>
@@ -110,5 +148,10 @@
   <button id="botonEstado">Cargando...</button>
   <p id="estadoTexto">Cargando estado...</p>
   <p id="ultimoUsuario">Cargando usuario...</p>
+
+  <div id="historialCambios">
+    <h3>Últimos 2 cambios</h3>
+    <p>Cargando historial...</p>
+  </div>
 </body>
 </html>
