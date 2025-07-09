@@ -4,6 +4,117 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Estado Laboratorio con Login</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet" />
+
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: #f4f6f8;
+      color: #333;
+      margin: 0;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    h1 {
+      color: #2c3e50;
+      margin-bottom: 30px;
+    }
+
+    .card {
+      background: #fff;
+      padding: 30px 20px;
+      border-radius: 16px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      width: 100%;
+      max-width: 400px;
+      margin-bottom: 20px;
+    }
+
+    input, button {
+      font-size: 1em;
+      padding: 12px;
+      margin: 10px 0;
+      width: 100%;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+    }
+
+    input:focus {
+      border-color: #2980b9;
+      outline: none;
+    }
+
+    button {
+      background-color: #2980b9;
+      color: white;
+      border: none;
+      font-weight: 600;
+      transition: background 0.3s ease;
+    }
+
+    button:hover {
+      background-color: #1c5980;
+    }
+
+    #botonEstado {
+      font-size: 1.1em;
+      padding: 14px;
+      margin-top: 15px;
+    }
+
+    #estadoTexto {
+      font-size: 1.1em;
+      margin-top: 15px;
+      color: #555;
+    }
+
+    #ultimoUsuario {
+      font-style: italic;
+      color: #777;
+      margin-top: 10px;
+    }
+
+    #historialCambios {
+      margin-top: 30px;
+      background: #f9f9f9;
+      padding: 15px;
+      border-radius: 12px;
+      text-align: left;
+    }
+
+    #historialCambios h3 {
+      margin-top: 0;
+    }
+
+    #historialCambios ul {
+      padding-left: 20px;
+    }
+
+    .section {
+      display: none;
+    }
+
+    .visible {
+      display: block;
+    }
+
+    @media (max-width: 480px) {
+      body {
+        padding: 10px;
+      }
+
+      .card {
+        padding: 20px 15px;
+      }
+    }
+  </style>
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-app.js";
@@ -14,7 +125,6 @@
       getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged
     } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-auth.js";
 
-    // CONFIGURACIÓN DE FIREBASE
     const firebaseConfig = {
       apiKey: "AIzaSyApRN9cnGIPsW_kNHtSfPpXWD4_TwrrBPk",
       authDomain: "estado-laboratorio.firebaseapp.com",
@@ -50,17 +160,16 @@
     const registerBtn = document.getElementById('registerBtn');
     const logoutBtn = document.getElementById('logoutBtn');
 
-    // CAMBIOS DE ESTADO EN FIREBASE
     onValue(estadoRef, (snapshot) => {
       const estado = snapshot.val();
       if (estado === "DISPONIBLE") {
         btn.textContent = "Disponible (Haz clic para ocupar)";
         estadoTexto.textContent = "El laboratorio está DISPONIBLE";
-        btn.style.backgroundColor = "#4CAF50";
+        btn.style.backgroundColor = "#27ae60";
       } else if (estado === "EN USO") {
         btn.textContent = "En uso (Haz clic para liberar)";
         estadoTexto.textContent = "El laboratorio está EN USO";
-        btn.style.backgroundColor = "#f44336";
+        btn.style.backgroundColor = "#e74c3c";
       } else {
         btn.textContent = "Estado desconocido";
         estadoTexto.textContent = "Estado no definido";
@@ -114,7 +223,6 @@
       historialContainer.innerHTML = `<ul>${entradas.join("")}</ul>`;
     });
 
-    // AUTENTICACIÓN
     onAuthStateChanged(auth, (user) => {
       if (user) {
         loginSection.style.display = "none";
@@ -145,77 +253,24 @@
       signOut(auth).catch(err => alert("Error al cerrar sesión: " + err.message));
     });
   </script>
-
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      text-align: center;
-      padding: 20px;
-      max-width: 600px;
-      margin: auto;
-    }
-
-    input, button {
-      font-size: 1em;
-      padding: 10px;
-      margin: 8px;
-      width: 90%;
-      max-width: 300px;
-    }
-
-    #botonEstado {
-      font-size: 1.2em;
-      padding: 15px 30px;
-      border: none;
-      border-radius: 8px;
-      color: white;
-      cursor: pointer;
-      margin-top: 20px;
-      width: 90%;
-      max-width: 300px;
-      transition: background-color 0.3s ease;
-    }
-
-    #ultimoUsuario {
-      margin-top: 20px;
-      font-style: italic;
-      color: #555;
-    }
-
-    #historialCambios {
-      margin-top: 30px;
-      text-align: left;
-    }
-
-    #historialCambios ul {
-      padding-left: 20px;
-    }
-
-    .section {
-      display: none;
-    }
-
-    .visible {
-      display: block;
-    }
-  </style>
 </head>
+
 <body>
-  <h1>Estado del Laboratorio de Electrónica</h1>
+  <h1>Estado del Laboratorio</h1>
 
   <!-- LOGIN -->
-  <div id="loginSection" class="section visible">
-    <h2>Iniciar sesión o registrarse</h2>
+  <div id="loginSection" class="section visible card">
+    <h2>Acceder</h2>
     <input type="email" id="email" placeholder="Correo electrónico" />
     <input type="password" id="password" placeholder="Contraseña" />
     <button id="loginBtn">Iniciar sesión</button>
-    <button id="registerBtn">Registrarse</button>
+    <button id="registerBtn" style="background-color: #27ae60;">Registrarse</button>
   </div>
 
   <!-- PANEL DEL LABORATORIO -->
-  <div id="labSection" class="section">
+  <div id="labSection" class="section card">
     <p>Sesión iniciada como: <strong><span id="userEmail"></span></strong></p>
-    <button id="logoutBtn">Cerrar sesión</button>
+    <button id="logoutBtn" style="background-color: #c0392b;">Cerrar sesión</button>
     <button id="botonEstado">Cargando...</button>
     <p id="estadoTexto">Cargando estado...</p>
     <p id="ultimoUsuario">Cargando usuario...</p>
