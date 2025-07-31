@@ -5,14 +5,18 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Estado del Laboratorio</title>
   <link rel="manifest" href="manifest.json" />
-  <meta name="theme-color" content="#2980b9" />
+  <meta name="theme-color" content="#1877f2" />
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap">
 
   <style>
+    * {
+      box-sizing: border-box;
+    }
+
     body {
-      font-family: 'Inter', sans-serif;
+      font-family: 'Inter', Helvetica, Arial, sans-serif;
       background-image: url('fondo.jpg');
       background-size: cover;
       background-position: center;
@@ -23,38 +27,117 @@
       display: flex;
       flex-direction: column;
       align-items: center;
+      min-height: 100vh;
     }
 
     h1 {
-      color: #ffffff;
-      text-shadow: 1px 1px 3px #000;
-      margin-bottom: 30px;
-    }
-
-    .card {
-      background: rgba(255, 255, 255, 0.9);
-      padding: 30px 20px;
-      border-radius: 16px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-      width: 100%;
-      max-width: 400px;
+      color: #1877f2;
+      text-shadow: 1px 1px 2px rgba(0,0,0,0.2);
+      font-size: 2.5em;
       margin-bottom: 20px;
     }
 
-    input, button {
+    .container {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      width: 100%;
+      max-width: 900px;
+      gap: 40px;
+      flex-wrap: wrap;
+    }
+
+    .intro-text {
+      max-width: 400px;
+      color: #ffffff;
+      text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
+    }
+
+    .intro-text h2 {
+      font-size: 1.8em;
+      margin-bottom: 10px;
+    }
+
+    .card {
+      background: #fff;
+      padding: 20px;
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+      width: 100%;
+      max-width: 400px;
+    }
+
+    input {
       font-size: 1em;
       padding: 12px;
-      margin: 10px 0;
+      margin: 8px 0;
       width: 100%;
-      border-radius: 8px;
-      border: 1px solid #ccc;
+      border: 1px solid #dddfe2;
+      border-radius: 6px;
+      outline: none;
+    }
+
+    input:focus {
+      border-color: #1877f2;
+      box-shadow: 0 0 0 2px rgba(24, 119, 242, 0.2);
     }
 
     button {
-      background-color: #2980b9;
-      color: white;
+      font-size: 1em;
+      padding: 12px;
+      margin: 8px 0;
+      width: 100%;
       border: none;
+      border-radius: 6px;
+      cursor: pointer;
       font-weight: 600;
+    }
+
+    .btn-primary {
+      background-color: #1877f2;
+      color: white;
+    }
+
+    .btn-primary:hover {
+      background-color: #166fe5;
+    }
+
+    .btn-secondary {
+      background-color: #42b72a;
+      color: white;
+    }
+
+    .btn-secondary:hover {
+      background-color: #36a420;
+    }
+
+    .btn-logout {
+      background-color: #e7e7e7;
+      color: #333;
+    }
+
+    .btn-logout:hover {
+      background-color: #d0d0d0;
+    }
+
+    .link {
+      color: #1877f2;
+      text-decoration: none;
+      font-size: 0.9em;
+      display: block;
+      text-align: center;
+      margin-top: 10px;
+    }
+
+    .link:hover {
+      text-decoration: underline;
+    }
+
+    .error {
+      color: #e74c3c;
+      font-size: 0.85em;
+      margin-top: 5px;
+      display: none;
     }
 
     #botonEstado {
@@ -68,10 +151,10 @@
     }
 
     #historialCambios {
-      margin-top: 30px;
-      background: #f1f1f1;
+      margin-top: 20px;
+      background: #f5f6f5;
       padding: 15px;
-      border-radius: 12px;
+      border-radius: 8px;
     }
 
     .section {
@@ -82,21 +165,45 @@
       display: block;
     }
 
-    @media (max-width: 480px) {
+    .loader {
+      border: 2px solid #f3f3f3;
+      border-top: 2px solid #1877f2;
+      border-radius: 50%;
+      width: 20px;
+      height: 20px;
+      animation: spin 1s linear infinite;
+      display: none;
+      margin: 10px auto;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    @media (max-width: 600px) {
+      .container {
+        flex-direction: column;
+        gap: 20px;
+      }
+      .intro-text {
+        text-align: center;
+      }
       .card {
-        padding: 20px 15px;
+        padding: 15px;
       }
     }
   </style>
 
   <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-app.js";
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.15.0/firebase-app.js";
     import {
       getDatabase, ref, onValue, set, push, query, limitToLast
-    } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-database.js";
+    } from "https://www.gstatic.com/firebasejs/10.15.0/firebase-database.js";
     import {
-      getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged
-    } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-auth.js";
+      getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, 
+      sendPasswordResetEmail, signOut, onAuthStateChanged
+    } from "https://www.gstatic.com/firebasejs/10.15.0/firebase-auth.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyApRN9cnGIPsW_kNHtSfPpXWD4_TwrrBPk",
@@ -116,33 +223,140 @@
     const usuarioRef = ref(db, 'laboratorio/usuario');
     const historialRef = query(ref(db, 'laboratorio/historial'), limitToLast(2));
 
-    const btn = document.getElementById('botonEstado');
-    const estadoTexto = document.getElementById('estadoTexto');
-    const ultimoUsuario = document.getElementById('ultimoUsuario');
-    const historialContainer = document.getElementById('historialCambios');
     const loginSection = document.getElementById('loginSection');
     const labSection = document.getElementById('labSection');
     const userEmailSpan = document.getElementById('userEmail');
     const emailInput = document.getElementById('email');
     const passwordInput = document.getElementById('password');
-    const loginBtn = document.getElementById('loginBtn');
-    const registerBtn = document.getElementById('registerBtn');
+    const actionBtn = document.getElementById('actionBtn');
+    const toggleLink = document.getElementById('toggleLink');
+    const forgotPasswordLink = document.getElementById('forgotPassword');
+    const errorMsg = document.getElementById('errorMsg');
+    const loader = document.getElementById('loader');
+    const btnEstado = document.getElementById('botonEstado');
+    const estadoTexto = document.getElementById('estadoTexto');
+    const ultimoUsuario = document.getElementById('ultimoUsuario');
+    const historialContainer = document.getElementById('historialCambios');
     const logoutBtn = document.getElementById('logoutBtn');
+
+    let isLoginMode = true;
+
+    function showError(message) {
+      errorMsg.textContent = message;
+      errorMsg.style.display = 'block';
+    }
+
+    function hideError() {
+      errorMsg.style.display = 'none';
+    }
+
+    function showLoader() {
+      loader.style.display = 'block';
+      actionBtn.disabled = true;
+    }
+
+    function hideLoader() {
+      loader.style.display = 'none';
+      actionBtn.disabled = false;
+    }
+
+    function validateInputs() {
+      const email = emailInput.value.trim();
+      const password = passwordInput.value;
+      if (!email.includes('@') || !email.includes('.')) {
+        showError('Por favor, ingresa un correo válido.');
+        return false;
+      }
+      if (password.length < 6) {
+        showError('La contraseña debe tener al menos 6 caracteres.');
+        return false;
+      }
+      return true;
+    }
+
+    actionBtn.addEventListener('click', async () => {
+      if (!validateInputs()) return;
+      showLoader();
+      hideError();
+
+      try {
+        if (isLoginMode) {
+          await signInWithEmailAndPassword(auth, emailInput.value, passwordInput.value);
+        } else {
+          await createUserWithEmailAndPassword(auth, emailInput.value, passwordInput.value);
+        }
+      } catch (err) {
+        let message = 'Ocurrió un error.';
+        if (err.code === 'auth/email-already-in-use') {
+          message = 'Este correo ya está registrado.';
+        } else if (err.code === 'auth/user-not-found' || err.code === 'auth/wrong-password') {
+          message = 'Correo o contraseña incorrectos.';
+        } else if (err.code === 'auth/invalid-email') {
+          message = 'Correo inválido.';
+        }
+        showError(message);
+      } finally {
+        hideLoader();
+      }
+    });
+
+    toggleLink.addEventListener('click', (e) => {
+      e.preventDefault();
+      isLoginMode = !isLoginMode;
+      actionBtn.textContent = isLoginMode ? 'Iniciar sesión' : 'Crear cuenta';
+      toggleLink.textContent = isLoginMode ? 'Crear cuenta nueva' : 'Ya tengo una cuenta';
+      forgotPasswordLink.style.display = isLoginMode ? 'block' : 'none';
+      hideError();
+    });
+
+    forgotPasswordLink.addEventListener('click', (e) => {
+      e.preventDefault();
+      const email = emailInput.value.trim();
+      if (!email) {
+        showError('Ingresa tu correo para recuperar la contraseña.');
+        return;
+      }
+      showLoader();
+      sendPasswordResetEmail(auth, email)
+        .then(() => {
+          alert('Se ha enviado un correo para restablecer tu contraseña.');
+        })
+        .catch(err => {
+          showError('Error al enviar el correo de recuperación.');
+        })
+        .finally(() => hideLoader());
+    });
+
+    logoutBtn.addEventListener('click', () => {
+      signOut(auth).catch(err => showError('Error al cerrar sesión.'));
+    });
+
+    onAuthStateChanged(auth, (user) => {
+      if (user) {
+        loginSection.classList.remove('visible');
+        labSection.classList.add('visible');
+        userEmailSpan.textContent = user.email;
+      } else {
+        loginSection.classList.add('visible');
+        labSection.classList.remove('visible');
+        userEmailSpan.textContent = '';
+      }
+    });
 
     onValue(estadoRef, (snapshot) => {
       const estado = snapshot.val();
-      if (estado === "DISPONIBLE") {
-        btn.textContent = "Disponible (Haz clic para ocupar)";
-        estadoTexto.textContent = "El laboratorio está DISPONIBLE";
-        btn.style.backgroundColor = "#27ae60";
-      } else if (estado === "EN USO") {
-        btn.textContent = "En uso (Haz clic para liberar)";
-        estadoTexto.textContent = "El laboratorio está EN USO";
-        btn.style.backgroundColor = "#e74c3c";
+      if (estado === 'DISPONIBLE') {
+        btnEstado.textContent = 'Disponible (Haz clic para ocupar)';
+        estadoTexto.textContent = 'El laboratorio está DISPONIBLE';
+        btnEstado.style.backgroundColor = '#42b72a';
+      } else if (estado === 'EN USO') {
+        btnEstado.textContent = 'En uso (Haz clic para liberar)';
+        estadoTexto.textContent = 'El laboratorio está EN USO';
+        btnEstado.style.backgroundColor = '#e74c3c';
       } else {
-        btn.textContent = "Estado desconocido";
-        estadoTexto.textContent = "Estado no definido";
-        btn.style.backgroundColor = "#777";
+        btnEstado.textContent = 'Estado desconocido';
+        estadoTexto.textContent = 'Estado no definido';
+        btnEstado.style.backgroundColor = '#777';
       }
     });
 
@@ -153,17 +367,17 @@
         : `No hay usuario registrado`;
     });
 
-    btn.addEventListener('click', () => {
+    btnEstado.addEventListener('click', () => {
       const usuario = auth.currentUser?.email;
       if (!usuario) {
-        alert("Debes iniciar sesión para cambiar el estado.");
+        alert('Debes iniciar sesión para cambiar el estado.');
         return;
       }
 
       onValue(estadoRef, (snapshot) => {
         const estadoActual = snapshot.val();
-        const nuevoEstado = (estadoActual === "DISPONIBLE") ? "EN USO" : "DISPONIBLE";
-        const fechaHora = new Date().toLocaleString("es-MX");
+        const nuevoEstado = estadoActual === 'DISPONIBLE' ? 'EN USO' : 'DISPONIBLE';
+        const fechaHora = new Date().toLocaleString('es-MX');
 
         set(ref(db, 'laboratorio'), {
           estado: nuevoEstado,
@@ -181,7 +395,7 @@
     onValue(historialRef, (snapshot) => {
       const historial = snapshot.val();
       if (!historial) {
-        historialContainer.innerHTML = "No hay historial aún.";
+        historialContainer.innerHTML = 'No hay historial aún.';
         return;
       }
 
@@ -189,33 +403,7 @@
         .reverse()
         .map(entry => `<li>${entry.fecha} - ${entry.usuario} cambió a ${entry.estado}</li>`);
 
-      historialContainer.innerHTML = `<ul>${entradas.join("")}</ul>`;
-    });
-
-    onAuthStateChanged(auth, (user) => {
-      if (user) {
-        loginSection.style.display = "none";
-        labSection.style.display = "block";
-        userEmailSpan.textContent = user.email;
-      } else {
-        loginSection.style.display = "block";
-        labSection.style.display = "none";
-        userEmailSpan.textContent = "";
-      }
-    });
-
-    loginBtn.addEventListener('click', () => {
-      signInWithEmailAndPassword(auth, emailInput.value, passwordInput.value)
-        .catch(err => alert("Error al iniciar sesión: " + err.message));
-    });
-
-    registerBtn.addEventListener('click', () => {
-      createUserWithEmailAndPassword(auth, emailInput.value, passwordInput.value)
-        .catch(err => alert("Error al registrarse: " + err.message));
-    });
-
-    logoutBtn.addEventListener('click', () => {
-      signOut(auth).catch(err => alert("Error al cerrar sesión: " + err.message));
+      historialContainer.innerHTML = `<ul>${entradas.join('')}</ul>`;
     });
 
     if ('serviceWorker' in navigator) {
@@ -227,25 +415,32 @@
 </head>
 
 <body>
-  <h1>Estado del Laboratorio</h1>
+  <div class="container">
+    <div class="intro-text">
+      <h2>Estado del Laboratorio</h2>
+      <p>Controla el estado del laboratorio de forma rápida y sencilla. Inicia sesión o crea una cuenta para comenzar.</p>
+    </div>
 
-  <!-- LOGIN -->
-  <div id="loginSection" class="section visible card">
-    <h2>Acceder</h2>
-    <input type="email" id="email" placeholder="Correo electrónico" />
-    <input type="password" id="password" placeholder="Contraseña" />
-    <button id="loginBtn">Iniciar sesión</button>
-    <button id="registerBtn" style="background-color: #27ae60;">Registrarse</button>
+    <!-- LOGIN / REGISTER -->
+    <div id="loginSection" class="section visible card">
+      <input type="email" id="email" placeholder="Correo electrónico" />
+      <input type="password" id="password" placeholder="Contraseña" />
+      <div id="errorMsg" class="error"></div>
+      <button id="actionBtn" class="btn-primary">Iniciar sesión</button>
+      <div id="loader" class="loader"></div>
+      <a href="#" id="forgotPassword" class="link">¿Olvidaste tu contraseña?</a>
+      <hr style="margin: 15px 0; border: none; border-top: 1px solid #dddfe2;" />
+      <a href="#" id="toggleLink" class="link">Crear cuenta nueva</a>
+    </div>
   </div>
 
   <!-- PANEL DEL LABORATORIO -->
   <div id="labSection" class="section card">
     <p>Sesión iniciada como: <strong><span id="userEmail"></span></strong></p>
-    <button id="logoutBtn" style="background-color: #c0392b;">Cerrar sesión</button>
-    <button id="botonEstado">Cargando...</button>
+    <button id="logoutBtn" class="btn-logout">Cerrar sesión</button>
+    <button id="botonEstado" class="btn-primary">Cargando...</button>
     <p id="estadoTexto">Cargando estado...</p>
     <p id="ultimoUsuario">Cargando usuario...</p>
-
     <div id="historialCambios">
       <h3>Últimos 2 cambios</h3>
       <p>Cargando historial...</p>
