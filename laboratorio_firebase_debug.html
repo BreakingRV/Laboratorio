@@ -327,7 +327,12 @@
       if (!docUser.exists || !docUser.data().approved) {
         loginMsg.style.color = '#c0392b';
         loginMsg.textContent = 'Tu cuenta no ha sido aprobada aún.';
+
+        // Mostrar login para que pueda cerrar sesión o hacer otro login
         appSection.style.display = 'none';
+        document.getElementById('login-section').style.display = 'block';
+        document.getElementById('register-section').style.display = 'none'; // opcional ocultar registro
+
         return;
       }
 
