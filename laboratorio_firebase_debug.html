@@ -17,6 +17,9 @@
 
 <h1>Estado del Laboratorio</h1>
 
+<!-- Mostrar estado siempre -->
+<p>Estado actual del laboratorio: <span id="status">Desconocido</span></p>
+
 <!-- Registro -->
 <div id="register-section">
   <h3>Registrar cuenta</h3>
@@ -32,13 +35,12 @@
   <input type="email" id="login-email" placeholder="Correo" /><br/>
   <input type="password" id="login-password" placeholder="Contraseña" /><br/>
   <button id="btn-login">Entrar</button>
-  <button id="btn-logout" style="display:none;">Salir</button>
+  <button id="btn-logout" style="display:none;">Cerrar sesión</button>
   <p id="login-msg"></p>
 </div>
 
-<!-- Aplicación -->
+<!-- Aplicación solo para usuarios aprobados -->
 <div id="app-section" style="display:none;">
-  <p>Estado actual del laboratorio: <span id="status">Desconocido</span></p>
   <button id="btn-toggle-status">Cambiar estado</button>
   <p id="status-msg"></p>
 
@@ -48,7 +50,7 @@
 
 <script>
   // Configura tu Firebase aquí
-const firebaseConfig = {
+ const firebaseConfig = {
   apiKey: "AIzaSyApRN9cnGIPsW_kNHtSfPpXWD4_TwrrBPk",
   authDomain: "estado-laboratorio.firebaseapp.com",
   databaseURL: "https://estado-laboratorio-default-rtdb.firebaseio.com",
@@ -83,6 +85,20 @@ const firebaseConfig = {
   const historyList = document.getElementById('history-list');
 
   let currentUserData = null; // Para guardar info de user aprobado
+
+  // Mostrar estado siempre, sin importar login
+  function listenLabStatus() {
+    db.collection('labStatus').doc('current')
+      .onSnapshot(doc => {
+        if (doc.exists) {
+          const estado = doc.data().estado;
+          statusSpan.textContent = estado === 'libre' ? 'LIBRE' : 'OCUPADO';
+        } else {
+          statusSpan.textContent = 'Desconocido';
+        }
+      });
+  }
+  listenLabStatus();
 
   // Registro de usuario
   btnRegister.onclick = async () => {
@@ -127,6 +143,7 @@ const firebaseConfig = {
     }
   };
 
+  // Logout
   btnLogout.onclick = () => {
     auth.signOut();
   };
@@ -152,8 +169,6 @@ const firebaseConfig = {
       btnLogout.style.display = 'inline-block';
       loginMsg.textContent = '';
 
-      // Mostrar estado actual
-      listenLabStatus();
       loadHistory();
 
     } else {
@@ -162,29 +177,16 @@ const firebaseConfig = {
       document.getElementById('login-section').style.display = 'block';
       document.getElementById('register-section').style.display = 'block';
       btnLogout.style.display = 'none';
-      statusSpan.textContent = 'Desconocido';
+      statusMsg.textContent = '';
       historyList.innerHTML = '';
     }
   });
-
-  // Función para escuchar cambios en estado del laboratorio
-  function listenLabStatus() {
-    db.collection('labStatus').doc('current')
-      .onSnapshot(doc => {
-        if (doc.exists) {
-          const estado = doc.data().estado;
-          statusSpan.textContent = estado === 'libre' ? 'LIBRE' : 'OCUPADO';
-        } else {
-          statusSpan.textContent = 'Desconocido';
-        }
-      });
-  }
 
   // Cambiar estado del laboratorio
   btnToggleStatus.onclick = async () => {
     if (!currentUserData) {
       statusMsg.style.color = 'red';
-      statusMsg.textContent = 'No autorizado.';
+      statusMsg.textContent = 'No autorizado. Inicia sesión con una cuenta aprobada.';
       return;
     }
     try {
@@ -218,8 +220,9 @@ const firebaseConfig = {
     }
   };
 
-  // Cargar últimos 4 cambios
+  // Cargar últimos 4 cambios (solo si usuario aprobado)
   async function loadHistory() {
+    if (!currentUserData) return;
     const snapshot = await db.collection('history')
       .orderBy('timestamp', 'desc')
       .limit(4)
