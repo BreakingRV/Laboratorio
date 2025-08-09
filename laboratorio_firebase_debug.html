@@ -150,12 +150,15 @@
   // Escuchar cambios de estado auth
   auth.onAuthStateChanged(async (user) => {
     if (user) {
+      // Mostrar botón logout siempre que haya user
+      btnLogout.style.display = 'inline-block';
+
       // Checar si user aprobado
       const docUser = await db.collection('users').doc(user.uid).get();
       if (!docUser.exists || !docUser.data().approved) {
         loginMsg.style.color = 'red';
         loginMsg.textContent = 'Tu cuenta no ha sido aprobada aún.';
-        await auth.signOut();
+        appSection.style.display = 'none';
         return;
       }
 
@@ -165,7 +168,6 @@
       appSection.style.display = 'block';
       document.getElementById('login-section').style.display = 'none';
       document.getElementById('register-section').style.display = 'none';
-      btnLogout.style.display = 'inline-block';
       loginMsg.textContent = '';
 
       loadHistory();
@@ -178,6 +180,7 @@
       btnLogout.style.display = 'none';
       statusMsg.textContent = '';
       historyList.innerHTML = '';
+      loginMsg.textContent = '';
     }
   });
 
@@ -239,5 +242,3 @@
 
 </body>
 </html>
-
-
