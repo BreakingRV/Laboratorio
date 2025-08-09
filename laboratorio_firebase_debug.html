@@ -271,21 +271,25 @@
       registerMsg.classList.add('red');
       return;
     }
+    btnRegister.disabled = true;
     try {
       const cred = await auth.createUserWithEmailAndPassword(email, password);
-      // Crear documento en users con approved: false
       await db.collection('users').doc(cred.user.uid).set({
         email,
         approved: false,
         createdAt: firebase.firestore.FieldValue.serverTimestamp(),
       });
       registerMsg.style.color = '#27ae60';
-      registerMsg.textContent = 'Cuenta creada. Espera a que un administrador apruebe tu cuenta.';
+      registerMsg.textContent = 'Cuenta creada. Espera a que un administrador apruebe tu cuenta para iniciar sesión.';
       registerMsg.classList.add('green');
+      registerEmail.value = '';
+      registerPassword.value = '';
     } catch (error) {
       registerMsg.style.color = '#c0392b';
       registerMsg.textContent = error.message;
       registerMsg.classList.add('red');
+    } finally {
+      btnRegister.disabled = false;
     }
   };
 
