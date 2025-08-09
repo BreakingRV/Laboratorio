@@ -8,9 +8,154 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
 <style>
-  body { font-family: Arial, sans-serif; margin: 20px; }
-  #login-section, #register-section, #app-section { margin-bottom: 20px; }
-  #status { font-weight: bold; }
+  /* Reset y base */
+  * {
+    box-sizing: border-box;
+  }
+  body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: #f5f7fa;
+    margin: 0;
+    padding: 0 15px 40px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-height: 100vh;
+    color: #333;
+  }
+  h1 {
+    margin-top: 30px;
+    margin-bottom: 10px;
+    font-weight: 700;
+    color: #2c3e50;
+    text-align: center;
+  }
+  p, h3 {
+    text-align: center;
+  }
+  #status {
+    font-weight: 700;
+    font-size: 1.3rem;
+    color: #27ae60; /* verde para libre */
+  }
+  /* Estado OCUPADO */
+  .ocupado {
+    color: #c0392b; /* rojo */
+  }
+
+  /* Secciones */
+  #register-section, #login-section, #app-section {
+    background: white;
+    border-radius: 10px;
+    padding: 20px;
+    width: 100%;
+    max-width: 380px;
+    box-shadow: 0 4px 10px rgb(0 0 0 / 0.1);
+    margin-bottom: 20px;
+  }
+
+  input[type="email"], input[type="password"] {
+    width: 100%;
+    padding: 14px 12px;
+    margin: 8px 0 16px 0;
+    border: 1.8px solid #ddd;
+    border-radius: 6px;
+    font-size: 1rem;
+    transition: border-color 0.3s ease;
+  }
+  input[type="email"]:focus, input[type="password"]:focus {
+    outline: none;
+    border-color: #2980b9;
+  }
+
+  button {
+    width: 100%;
+    background-color: #2980b9;
+    color: white;
+    padding: 14px 0;
+    border: none;
+    border-radius: 6px;
+    font-size: 1.1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+    margin-top: 10px;
+  }
+  button:hover {
+    background-color: #1c5980;
+  }
+  button:active {
+    background-color: #15405c;
+  }
+
+  #btn-logout {
+    background-color: #e74c3c;
+    margin-top: 0;
+  }
+  #btn-logout:hover {
+    background-color: #c0392b;
+  }
+  #btn-logout:active {
+    background-color: #922b21;
+  }
+
+  /* Mensajes */
+  #register-msg, #login-msg, #status-msg {
+    font-size: 0.9rem;
+    min-height: 1.2em;
+    margin-top: 10px;
+    text-align: center;
+  }
+  #register-msg.green, #login-msg.green, #status-msg.green {
+    color: #27ae60;
+  }
+  #register-msg.red, #login-msg.red, #status-msg.red {
+    color: #c0392b;
+  }
+
+  /* Lista historial */
+  #history-list {
+    list-style: none;
+    padding-left: 0;
+    max-height: 200px;
+    overflow-y: auto;
+    margin-top: 12px;
+  }
+  #history-list li {
+    padding: 8px 12px;
+    background: #ecf0f1;
+    margin-bottom: 8px;
+    border-radius: 6px;
+    font-size: 0.95rem;
+    word-wrap: break-word;
+  }
+
+  /* Estado libre/ocupado en texto */
+  #status.libre {
+    color: #27ae60;
+  }
+  #status.ocupado {
+    color: #c0392b;
+  }
+
+  /* Responsive móvil */
+  @media (max-width: 420px) {
+    body {
+      padding: 15px 10px 30px;
+    }
+    #register-section, #login-section, #app-section {
+      width: 100%;
+      max-width: 100%;
+      padding: 15px;
+    }
+    button {
+      font-size: 1rem;
+      padding: 12px 0;
+    }
+    h1 {
+      font-size: 1.8rem;
+    }
+  }
 </style>
 </head>
 <body>
@@ -18,13 +163,13 @@
 <h1>Estado del Laboratorio</h1>
 
 <!-- Mostrar estado siempre -->
-<p>Estado actual del laboratorio: <span id="status">Desconocido</span></p>
+<p>Estado actual del laboratorio: <span id="status" class="libre">Desconocido</span></p>
 
 <!-- Registro -->
 <div id="register-section">
   <h3>Registrar cuenta</h3>
-  <input type="email" id="register-email" placeholder="Correo" /><br/>
-  <input type="password" id="register-password" placeholder="Contraseña" /><br/>
+  <input type="email" id="register-email" placeholder="Correo" autocomplete="username"/>
+  <input type="password" id="register-password" placeholder="Contraseña" autocomplete="new-password"/>
   <button id="btn-register">Registrar</button>
   <p id="register-msg"></p>
 </div>
@@ -32,8 +177,8 @@
 <!-- Login -->
 <div id="login-section">
   <h3>Iniciar sesión</h3>
-  <input type="email" id="login-email" placeholder="Correo" /><br/>
-  <input type="password" id="login-password" placeholder="Contraseña" /><br/>
+  <input type="email" id="login-email" placeholder="Correo" autocomplete="username"/>
+  <input type="password" id="login-password" placeholder="Contraseña" autocomplete="current-password"/>
   <button id="btn-login">Entrar</button>
   <button id="btn-logout" style="display:none;">Cerrar sesión</button>
   <p id="login-msg"></p>
@@ -85,15 +230,31 @@
 
   let currentUserData = null; // Para guardar info de user aprobado
 
+  // Actualiza el color y clase del estado en el texto
+  function updateStatusText(estado) {
+    if (estado === 'libre') {
+      statusSpan.textContent = 'LIBRE';
+      statusSpan.classList.remove('ocupado');
+      statusSpan.classList.add('libre');
+    } else if (estado === 'ocupado') {
+      statusSpan.textContent = 'OCUPADO';
+      statusSpan.classList.remove('libre');
+      statusSpan.classList.add('ocupado');
+    } else {
+      statusSpan.textContent = 'DESCONOCIDO';
+      statusSpan.classList.remove('libre', 'ocupado');
+    }
+  }
+
   // Mostrar estado siempre, sin importar login
   function listenLabStatus() {
     db.collection('labStatus').doc('current')
       .onSnapshot(doc => {
         if (doc.exists) {
           const estado = doc.data().estado;
-          statusSpan.textContent = estado === 'libre' ? 'LIBRE' : 'OCUPADO';
+          updateStatusText(estado);
         } else {
-          statusSpan.textContent = 'Desconocido';
+          updateStatusText(null);
         }
       });
   }
@@ -104,8 +265,10 @@
     const email = registerEmail.value.trim();
     const password = registerPassword.value.trim();
     registerMsg.textContent = '';
+    registerMsg.className = '';
     if (!email || !password) {
       registerMsg.textContent = 'Completa email y contraseña.';
+      registerMsg.classList.add('red');
       return;
     }
     try {
@@ -116,11 +279,13 @@
         approved: false,
         createdAt: firebase.firestore.FieldValue.serverTimestamp(),
       });
-      registerMsg.style.color = 'green';
+      registerMsg.style.color = '#27ae60';
       registerMsg.textContent = 'Cuenta creada. Espera a que un administrador apruebe tu cuenta.';
+      registerMsg.classList.add('green');
     } catch (error) {
-      registerMsg.style.color = 'red';
+      registerMsg.style.color = '#c0392b';
       registerMsg.textContent = error.message;
+      registerMsg.classList.add('red');
     }
   };
 
@@ -129,16 +294,20 @@
     const email = loginEmail.value.trim();
     const password = loginPassword.value.trim();
     loginMsg.textContent = '';
+    loginMsg.className = '';
     if (!email || !password) {
       loginMsg.textContent = 'Completa email y contraseña.';
+      loginMsg.classList.add('red');
       return;
     }
     try {
       await auth.signInWithEmailAndPassword(email, password);
       loginMsg.textContent = '';
+      loginMsg.className = '';
     } catch (error) {
-      loginMsg.style.color = 'red';
+      loginMsg.style.color = '#c0392b';
       loginMsg.textContent = error.message;
+      loginMsg.classList.add('red');
     }
   };
 
@@ -156,7 +325,7 @@
       // Checar si user aprobado
       const docUser = await db.collection('users').doc(user.uid).get();
       if (!docUser.exists || !docUser.data().approved) {
-        loginMsg.style.color = 'red';
+        loginMsg.style.color = '#c0392b';
         loginMsg.textContent = 'Tu cuenta no ha sido aprobada aún.';
         appSection.style.display = 'none';
         return;
@@ -169,6 +338,7 @@
       document.getElementById('login-section').style.display = 'none';
       document.getElementById('register-section').style.display = 'none';
       loginMsg.textContent = '';
+      loginMsg.className = '';
 
       loadHistory();
 
@@ -181,13 +351,14 @@
       statusMsg.textContent = '';
       historyList.innerHTML = '';
       loginMsg.textContent = '';
+      loginMsg.className = '';
     }
   });
 
   // Cambiar estado del laboratorio
   btnToggleStatus.onclick = async () => {
     if (!currentUserData) {
-      statusMsg.style.color = 'red';
+      statusMsg.style.color = '#c0392b';
       statusMsg.textContent = 'No autorizado. Inicia sesión con una cuenta aprobada.';
       return;
     }
@@ -213,11 +384,11 @@
         timestamp: firebase.firestore.FieldValue.serverTimestamp(),
       });
 
-      statusMsg.style.color = 'green';
+      statusMsg.style.color = '#27ae60';
       statusMsg.textContent = `Estado cambiado a ${nuevoEstado.toUpperCase()}`;
       loadHistory();
     } catch (error) {
-      statusMsg.style.color = 'red';
+      statusMsg.style.color = '#c0392b';
       statusMsg.textContent = 'Error: ' + error.message;
     }
   };
