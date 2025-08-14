@@ -1,216 +1,424 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Estado del Laboratorio</title>
-  <style>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Estado del Laboratorio</title>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<style>
+  /* Reset y base */
+  * {
+    box-sizing: border-box;
+  }
+  body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: #f5f7fa;
+    margin: 0;
+    padding: 0 15px 40px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-height: 100vh;
+    color: #333;
+  }
+  h1 {
+    margin-top: 30px;
+    margin-bottom: 10px;
+    font-weight: 700;
+    color: #2c3e50;
+    text-align: center;
+  }
+  p, h3 {
+    text-align: center;
+  }
+  #status {
+    font-weight: 700;
+    font-size: 1.3rem;
+    color: #27ae60; /* verde para libre */
+  }
+  /* Estado OCUPADO */
+  .ocupado {
+    color: #c0392b; /* rojo */
+  }
+
+  /* Secciones */
+  #register-section, #login-section, #app-section {
+    background: white;
+    border-radius: 10px;
+    padding: 20px;
+    width: 100%;
+    max-width: 380px;
+    box-shadow: 0 4px 10px rgb(0 0 0 / 0.1);
+    margin-bottom: 20px;
+  }
+
+  input[type="email"], input[type="password"] {
+    width: 100%;
+    padding: 14px 12px;
+    margin: 8px 0 16px 0;
+    border: 1.8px solid #ddd;
+    border-radius: 6px;
+    font-size: 1rem;
+    transition: border-color 0.3s ease;
+  }
+  input[type="email"]:focus, input[type="password"]:focus {
+    outline: none;
+    border-color: #2980b9;
+  }
+
+  button {
+    width: 100%;
+    background-color: #2980b9;
+    color: white;
+    padding: 14px 0;
+    border: none;
+    border-radius: 6px;
+    font-size: 1.1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+    margin-top: 10px;
+  }
+  button:hover {
+    background-color: #1c5980;
+  }
+  button:active {
+    background-color: #15405c;
+  }
+
+  #btn-logout {
+    background-color: #e74c3c;
+    margin-top: 0;
+  }
+  #btn-logout:hover {
+    background-color: #c0392b;
+  }
+  #btn-logout:active {
+    background-color: #922b21;
+  }
+
+  /* Mensajes */
+  #register-msg, #login-msg, #status-msg {
+    font-size: 0.9rem;
+    min-height: 1.2em;
+    margin-top: 10px;
+    text-align: center;
+  }
+  #register-msg.green, #login-msg.green, #status-msg.green {
+    color: #27ae60;
+  }
+  #register-msg.red, #login-msg.red, #status-msg.red {
+    color: #c0392b;
+  }
+
+  /* Lista historial */
+  #history-list {
+    list-style: none;
+    padding-left: 0;
+    max-height: 200px;
+    overflow-y: auto;
+    margin-top: 12px;
+  }
+  #history-list li {
+    padding: 8px 12px;
+    background: #ecf0f1;
+    margin-bottom: 8px;
+    border-radius: 6px;
+    font-size: 0.95rem;
+    word-wrap: break-word;
+  }
+
+  /* Estado libre/ocupado en texto */
+  #status.libre {
+    color: #27ae60;
+  }
+  #status.ocupado {
+    color: #c0392b;
+  }
+
+  /* Responsive móvil */
+  @media (max-width: 420px) {
     body {
-      font-family: Arial, sans-serif;
-      background-color: #f4f6f8;
-      margin: 0;
-      padding: 0;
-      text-align: center;
+      padding: 15px 10px 30px;
     }
-    header {
-      background-color: #2980b9;
-      color: white;
+    #register-section, #login-section, #app-section {
+      width: 100%;
+      max-width: 100%;
       padding: 15px;
-      font-size: 20px;
-    }
-    main {
-      padding: 15px;
-      max-width: 400px;
-      margin: auto;
-    }
-    .card {
-      background: white;
-      padding: 15px;
-      margin-top: 15px;
-      border-radius: 10px;
-      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
     }
     button {
-      padding: 10px 15px;
-      background-color: #2980b9;
-      color: white;
-      border: none;
-      border-radius: 5px;
-      cursor: pointer;
-      margin-top: 10px;
+      font-size: 1rem;
+      padding: 12px 0;
     }
-    button:hover {
-      background-color: #1f6692;
+    h1 {
+      font-size: 1.8rem;
     }
-    input {
-      width: 90%;
-      padding: 8px;
-      margin: 5px 0;
-      border: 1px solid #ccc;
-      border-radius: 5px;
-    }
-    #logoutBtn {
-      background-color: #e74c3c;
-    }
-    #logoutBtn:hover {
-      background-color: #c0392b;
-    }
-  </style>
+  }
+</style>
 </head>
 <body>
 
-  <header>Estado del Laboratorio</header>
+<h1>Estado del Laboratorio</h1>
 
-  <main>
-    <!-- Estado actual -->
-    <div class="card" id="estadoCard">
-      <h2>Estado: <span id="estadoTexto">Cargando...</span></h2>
-    </div>
+<!-- Mostrar estado siempre -->
+<p>Estado actual del laboratorio: <span id="status" class="libre">Desconocido</span></p>
 
-    <!-- Cambiar estado -->
-    <div class="card" id="panelCambio" style="display:none;">
-      <input type="text" id="nombreUsuario" placeholder="Tu nombre">
-      <button id="btnDisponible">Marcar como DISPONIBLE</button>
-      <button id="btnOcupado">Marcar como OCUPADO</button>
-    </div>
+<!-- Registro -->
+<div id="register-section">
+  <h3>Registrar cuenta</h3>
+  <input type="email" id="register-email" placeholder="Correo" autocomplete="username"/>
+  <input type="password" id="register-password" placeholder="Contraseña" autocomplete="new-password"/>
+  <button id="btn-register">Registrar</button>
+  <p id="register-msg"></p>
+</div>
 
-    <!-- Historial -->
-    <div class="card">
-      <h3>Últimos cambios</h3>
-      <ul id="historial"></ul>
-    </div>
+<!-- Login -->
+<div id="login-section">
+  <h3>Iniciar sesión</h3>
+  <input type="email" id="login-email" placeholder="Correo" autocomplete="username"/>
+  <input type="password" id="login-password" placeholder="Contraseña" autocomplete="current-password"/>
+  <button id="btn-login">Entrar</button>
+  <button id="btn-logout" style="display:none;">Cerrar sesión</button>
+  <p id="login-msg"></p>
+</div>
 
-    <!-- Registro -->
-    <div class="card" id="registroCard">
-      <h3>Registrarse</h3>
-      <input type="email" id="regEmail" placeholder="Correo">
-      <input type="password" id="regPassword" placeholder="Contraseña">
-      <button id="btnRegistrar">Registrar</button>
-    </div>
+<!-- Aplicación solo para usuarios aprobados -->
+<div id="app-section" style="display:none;">
+  <button id="btn-toggle-status">Cambiar estado</button>
+  <p id="status-msg"></p>
 
-    <!-- Login -->
-    <div class="card" id="loginCard">
-      <h3>Iniciar Sesión</h3>
-      <input type="email" id="logEmail" placeholder="Correo">
-      <input type="password" id="logPassword" placeholder="Contraseña">
-      <button id="btnLogin">Entrar</button>
-    </div>
+  <h3>Últimos 4 cambios:</h3>
+  <ul id="history-list"></ul>
+</div>
 
-    <!-- Botón logout -->
-    <button id="logoutBtn" style="display:none;">Cerrar sesión</button>
-  </main>
+<script>
+  // Tu configuración Firebase
+  const firebaseConfig = {
+    apiKey: "AIzaSyApRN9cnGIPsW_kNHtSfPpXWD4_TwrrBPk",
+    authDomain: "estado-laboratorio.firebaseapp.com",
+    projectId: "estado-laboratorio",
+    storageBucket: "estado-laboratorio.firebasestorage.app",
+    messagingSenderId: "449135433069",
+    appId: "1:449135433069:web:acf49b3ef481ee9799f664",
+    measurementId: "G-HL7R07P79H"
+  };
 
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-    import { getFirestore, doc, getDoc, setDoc, updateDoc, onSnapshot, collection, addDoc, query, orderBy, limit, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
-    import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+  // Inicializa Firebase
+  firebase.initializeApp(firebaseConfig);
+  const auth = firebase.auth();
+  const db = firebase.firestore();
 
-    const firebaseConfig = {
-      apiKey: "AIzaSyApRN9cnGIPsW_kNHtSfPpXWD4_TwrrBPk",
-      authDomain: "estado-laboratorio.firebaseapp.com",
-      projectId: "estado-laboratorio",
-      storageBucket: "estado-laboratorio.appspot.com",
-      messagingSenderId: "449135433069",
-      appId: "1:449135433069:web:acf49b3ef481ee9799f664"
-    };
+  // Elementos DOM
+  const registerEmail = document.getElementById('register-email');
+  const registerPassword = document.getElementById('register-password');
+  const btnRegister = document.getElementById('btn-register');
+  const registerMsg = document.getElementById('register-msg');
 
-    const app = initializeApp(firebaseConfig);
-    const db = getFirestore(app);
-    const auth = getAuth(app);
+  const loginEmail = document.getElementById('login-email');
+  const loginPassword = document.getElementById('login-password');
+  const btnLogin = document.getElementById('btn-login');
+  const btnLogout = document.getElementById('btn-logout');
+  const loginMsg = document.getElementById('login-msg');
 
-    const estadoTexto = document.getElementById("estadoTexto");
-    const historialLista = document.getElementById("historial");
-    const panelCambio = document.getElementById("panelCambio");
-    const logoutBtn = document.getElementById("logoutBtn");
+  const appSection = document.getElementById('app-section');
+  const statusSpan = document.getElementById('status');
+  const btnToggleStatus = document.getElementById('btn-toggle-status');
+  const statusMsg = document.getElementById('status-msg');
+  const historyList = document.getElementById('history-list');
 
-    // Mostrar estado en tiempo real
-    onSnapshot(doc(db, "laboratorio", "estado"), (docSnap) => {
-      if (docSnap.exists()) {
-        estadoTexto.textContent = docSnap.data().estado;
-      }
-    });
+  let currentUserData = null; // Para guardar info de user aprobado
 
-    // Mostrar historial
-    const q = query(collection(db, "laboratorio", "estado", "historial"), orderBy("fecha", "desc"), limit(4));
-    onSnapshot(q, (snapshot) => {
-      historialLista.innerHTML = "";
-      snapshot.forEach((doc) => {
-        const data = doc.data();
-        const fecha = data.fecha?.toDate().toLocaleString();
-        historialLista.innerHTML += `<li>${data.usuario} - ${data.estado} (${fecha})</li>`;
-      });
-    });
+  // Actualiza el color y clase del estado en el texto
+  function updateStatusText(estado) {
+    if (estado === 'libre') {
+      statusSpan.textContent = 'LIBRE';
+      statusSpan.classList.remove('ocupado');
+      statusSpan.classList.add('libre');
+    } else if (estado === 'ocupado') {
+      statusSpan.textContent = 'OCUPADO';
+      statusSpan.classList.remove('libre');
+      statusSpan.classList.add('ocupado');
+    } else {
+      statusSpan.textContent = 'DESCONOCIDO';
+      statusSpan.classList.remove('libre', 'ocupado');
+    }
+  }
 
-    // Cambiar estado
-    document.getElementById("btnDisponible").addEventListener("click", async () => {
-      const nombre = document.getElementById("nombreUsuario").value.trim();
-      if (!nombre) return alert("Ingresa tu nombre");
-      await updateDoc(doc(db, "laboratorio", "estado"), { estado: "DISPONIBLE" });
-      await addDoc(collection(db, "laboratorio", "estado", "historial"), {
-        usuario: nombre,
-        estado: "DISPONIBLE",
-        fecha: serverTimestamp()
-      });
-    });
-
-    document.getElementById("btnOcupado").addEventListener("click", async () => {
-      const nombre = document.getElementById("nombreUsuario").value.trim();
-      if (!nombre) return alert("Ingresa tu nombre");
-      await updateDoc(doc(db, "laboratorio", "estado"), { estado: "OCUPADO" });
-      await addDoc(collection(db, "laboratorio", "estado", "historial"), {
-        usuario: nombre,
-        estado: "OCUPADO",
-        fecha: serverTimestamp()
-      });
-    });
-
-    // Registro
-    document.getElementById("btnRegistrar").addEventListener("click", async () => {
-      const email = document.getElementById("regEmail").value;
-      const pass = document.getElementById("regPassword").value;
-      try {
-        const userCredential = await createUserWithEmailAndPassword(auth, email, pass);
-        await setDoc(doc(db, "usuarios", userCredential.user.uid), { aprobado: false });
-        alert("Registro exitoso. Debe ser aprobado por un administrador antes de poder iniciar sesión.");
-      } catch (error) {
-        alert("Error: " + error.message);
-      }
-    });
-
-    // Login
-    document.getElementById("btnLogin").addEventListener("click", async () => {
-      const email = document.getElementById("logEmail").value;
-      const pass = document.getElementById("logPassword").value;
-      try {
-        const userCredential = await signInWithEmailAndPassword(auth, email, pass);
-        const docUser = await getDoc(doc(db, "usuarios", userCredential.user.uid));
-        if (docUser.exists() && !docUser.data().aprobado) {
-          await signOut(auth);
-          alert("Su cuenta aún no ha sido aprobada por el administrador.");
+  // Mostrar estado siempre, sin importar login
+  function listenLabStatus() {
+    db.collection('labStatus').doc('current')
+      .onSnapshot(doc => {
+        if (doc.exists) {
+          const estado = doc.data().estado;
+          updateStatusText(estado);
+        } else {
+          updateStatusText(null);
         }
-      } catch (error) {
-        alert("Error: " + error.message);
+      });
+  }
+  listenLabStatus();
+
+  // Registro de usuario
+  btnRegister.onclick = async () => {
+    const email = registerEmail.value.trim();
+    const password = registerPassword.value.trim();
+    registerMsg.textContent = '';
+    registerMsg.className = '';
+    if (!email || !password) {
+      registerMsg.textContent = 'Completa email y contraseña.';
+      registerMsg.classList.add('red');
+      return;
+    }
+    btnRegister.disabled = true;
+    try {
+      const cred = await auth.createUserWithEmailAndPassword(email, password);
+      await db.collection('users').doc(cred.user.uid).set({
+        email,
+        approved: false,
+        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+      });
+      registerMsg.style.color = '#27ae60';
+      registerMsg.textContent = 'Cuenta creada. Espera a que un administrador apruebe tu cuenta para iniciar sesión.';
+      registerMsg.classList.add('green');
+      registerEmail.value = '';
+      registerPassword.value = '';
+    } catch (error) {
+      registerMsg.style.color = '#c0392b';
+      registerMsg.textContent = error.message;
+      registerMsg.classList.add('red');
+    } finally {
+      btnRegister.disabled = false;
+    }
+  };
+
+  // Login
+  btnLogin.onclick = async () => {
+    const email = loginEmail.value.trim();
+    const password = loginPassword.value.trim();
+    loginMsg.textContent = '';
+    loginMsg.className = '';
+    if (!email || !password) {
+      loginMsg.textContent = 'Completa email y contraseña.';
+      loginMsg.classList.add('red');
+      return;
+    }
+    try {
+      await auth.signInWithEmailAndPassword(email, password);
+      loginMsg.textContent = '';
+      loginMsg.className = '';
+    } catch (error) {
+      loginMsg.style.color = '#c0392b';
+      loginMsg.textContent = error.message;
+      loginMsg.classList.add('red');
+    }
+  };
+
+  // Logout
+  btnLogout.onclick = () => {
+    auth.signOut();
+  };
+
+  // Escuchar cambios de estado auth
+  auth.onAuthStateChanged(async (user) => {
+    if (user) {
+      // Mostrar botón logout siempre que haya user
+      btnLogout.style.display = 'inline-block';
+
+      // Checar si user aprobado
+      const docUser = await db.collection('users').doc(user.uid).get();
+      if (!docUser.exists || !docUser.data().approved) {
+        loginMsg.style.color = '#c0392b';
+        loginMsg.textContent = 'Tu cuenta no ha sido aprobada aún.';
+
+        // Mostrar login para que pueda cerrar sesión o hacer otro login
+        appSection.style.display = 'none';
+        document.getElementById('login-section').style.display = 'block';
+        document.getElementById('register-section').style.display = 'none'; // opcional ocultar registro
+
+        return;
       }
-    });
 
-    // Estado de autenticación
-    onAuthStateChanged(auth, (user) => {
-      if (user) {
-        logoutBtn.style.display = "block";
-        panelCambio.style.display = "block";
-      } else {
-        logoutBtn.style.display = "none";
-        panelCambio.style.display = "none";
+      currentUserData = docUser.data();
+
+      // Mostrar UI app y ocultar login/registro
+      appSection.style.display = 'block';
+      document.getElementById('login-section').style.display = 'none';
+      document.getElementById('register-section').style.display = 'none';
+      loginMsg.textContent = '';
+      loginMsg.className = '';
+
+      loadHistory();
+
+    } else {
+      currentUserData = null;
+      appSection.style.display = 'none';
+      document.getElementById('login-section').style.display = 'block';
+      document.getElementById('register-section').style.display = 'block';
+      btnLogout.style.display = 'none';
+      statusMsg.textContent = '';
+      historyList.innerHTML = '';
+      loginMsg.textContent = '';
+      loginMsg.className = '';
+    }
+  });
+
+  // Cambiar estado del laboratorio
+  btnToggleStatus.onclick = async () => {
+    if (!currentUserData) {
+      statusMsg.style.color = '#c0392b';
+      statusMsg.textContent = 'No autorizado. Inicia sesión con una cuenta aprobada.';
+      return;
+    }
+    try {
+      // Obtener estado actual
+      const doc = await db.collection('labStatus').doc('current').get();
+      let nuevoEstado = 'libre';
+      if (doc.exists && doc.data().estado === 'libre') {
+        nuevoEstado = 'ocupado';
       }
-    });
 
-    // Cerrar sesión
-    logoutBtn.addEventListener("click", async () => {
-      await signOut(auth);
-      alert("Sesión cerrada");
-    });
+      // Actualizar estado
+      await db.collection('labStatus').doc('current').set({
+        estado: nuevoEstado,
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+      });
 
-  </script>
+      // Agregar registro a historial
+      await db.collection('history').add({
+        userId: auth.currentUser.uid,
+        email: auth.currentUser.email,
+        estado: nuevoEstado,
+        timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+      });
+
+      statusMsg.style.color = '#27ae60';
+      statusMsg.textContent = `Estado cambiado a ${nuevoEstado.toUpperCase()}`;
+      loadHistory();
+    } catch (error) {
+      statusMsg.style.color = '#c0392b';
+      statusMsg.textContent = 'Error: ' + error.message;
+    }
+  };
+
+  // Cargar últimos 4 cambios (solo si usuario aprobado)
+  async function loadHistory() {
+    if (!currentUserData) return;
+    const snapshot = await db.collection('history')
+      .orderBy('timestamp', 'desc')
+      .limit(4)
+      .get();
+    historyList.innerHTML = '';
+    snapshot.forEach(doc => {
+      const data = doc.data();
+      const fecha = data.timestamp?.toDate().toLocaleString() || 'sin fecha';
+      const li = document.createElement('li');
+      li.textContent = `${fecha}: ${data.email} cambió a ${data.estado.toUpperCase()}`;
+      historyList.appendChild(li);
+    });
+  }
+</script>
 
 </body>
 </html>
